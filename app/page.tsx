@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -165,13 +164,11 @@ const ChatInterface = dynamic(() => Promise.resolve(({
         <EmptyState mode={mode} />
       ) : (
         messages.map((message, index) => (
-          <div key={index} className="flex items-start gap-2 sm:gap-3">
-            <Avatar className="w-6 h-6 sm:w-8 sm:h-8">
-              <AvatarFallback className="text-xs sm:text-sm">
-                {message.role === 'user' ? 'U' : 'AI'}
-              </AvatarFallback>
-            </Avatar>
-            <Card className={`flex-1 ${message.role === 'assistant' ? 'bg-muted' : ''}`}>
+          <div key={index} className="flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground ml-1">
+              {message.role === 'user' ? 'You' : 'Groq70'}
+            </span>
+            <Card className={`w-full ${message.role === 'assistant' ? 'bg-muted' : ''}`}>
               <CardContent className="p-2 sm:p-3 text-xs sm:text-sm break-words">
                 <div className="prose prose-sm dark:prose-invert max-w-none">
                   {message.role === 'user' ? (
@@ -248,11 +245,9 @@ const ChatInterface = dynamic(() => Promise.resolve(({
         ))
       )}
       {isLoading && (
-        <div className="flex items-start gap-2 sm:gap-3">
-          <Avatar className="w-6 h-6 sm:w-8 sm:h-8">
-            <AvatarFallback className="text-xs sm:text-sm">AI</AvatarFallback>
-          </Avatar>
-          <Card className="flex-1 bg-muted">
+        <div className="flex flex-col gap-1">
+          <span className="text-xs text-muted-foreground ml-1">Groq70</span>
+          <Card className="w-full bg-muted">
             <CardContent className="p-2 sm:p-3">
               <div className="animate-pulse text-xs sm:text-sm">Thinking...</div>
             </CardContent>
