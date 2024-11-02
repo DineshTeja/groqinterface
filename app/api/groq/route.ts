@@ -1,12 +1,27 @@
 import { Groq } from "groq-sdk";
 
+type GroqMessageParam = {
+  role: "system" | "user" | "assistant";
+  content: string;
+  name?: string;
+};
+
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
+type ChatMode = 'software' | 'notetaking' | 'research' | 'general';
+
+const SYSTEM_PROMPTS: Record<ChatMode, string> = {
+  software: "You are an AI technical interviewer assistant. You will receive software engineering interview questions that may range from conceptual to highly technical topics. For every response, start with a 1-2 line 'TLDR:' that captures the key point, then provide your detailed explanation. Provide clear, concise, and accurate responses. For complex technical concepts, include brief explanations. Focus on being direct while ensuring the core concepts are well understood. If code examples are needed, keep them minimal but illustrative.",
+  notetaking: "You are an AI note-taking assistant. Help users organize, summarize, and structure their thoughts and information. For every response, start with a 1-2 line 'TLDR:' summary. Focus on clarity, structure, and highlighting key points. Suggest ways to better organize information when relevant.",
+  research: "You are an AI research assistant. Help users explore topics deeply, find relevant information, and understand complex subjects. For every response, start with a 1-2 line 'TLDR:' summary. Provide well-structured explanations with citations when possible. Break down complex topics into digestible parts.",
+  general: "You are a helpful AI assistant. For every response, start with a 1-2 line 'TLDR:' summary, then provide clear and informative explanations. Focus on being direct while ensuring concepts are well understood."
+};
+
 export async function POST(request: Request) {
   try {
-    const { messages } = await request.json();
+    const { messages, mode = 'general' } = await request.json() as { messages: GroqMessageParam[]; mode: ChatMode };
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return new Response(JSON.stringify({ error: 'Valid message history is required' }), {
@@ -15,12 +30,12 @@ export async function POST(request: Request) {
       });
     }
 
-    const systemMessage = {
+    const systemMessage: GroqMessageParam = {
       role: "system",
-      content: "You are an AI technical interviewer assistant. You will receive software engineering interview questions that may range from conceptual to highly technical topics. For every response, start with a 1-2 line 'TLDR:' that captures the key point, then provide your detailed explanation. Provide clear, concise, and accurate responses. For complex technical concepts, include brief explanations. Focus on being direct while ensuring the core concepts are well understood. If code examples are needed, keep them minimal but illustrative."
+      content: SYSTEM_PROMPTS[mode]
     };
 
-    const allMessages = [systemMessage, ...messages];
+    const allMessages: GroqMessageParam[] = [systemMessage, ...messages];
 
     const completion = await groq.chat.completions.create({
       messages: allMessages,

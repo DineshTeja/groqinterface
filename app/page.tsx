@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,19 +9,54 @@ import { Send, Bot } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import dynamic from 'next/dynamic';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  CommandDialog,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+} from "@/components/ui/command";
+import { useHotkeys } from 'react-hotkeys-hook';
 
 type Message = {
   role: 'user' | 'assistant';
   content: string;
 };
 
+type ChatMode = 'software' | 'notetaking' | 'research' | 'general';
 
-const EmptyState = () => (
-  <div className="flex flex-col items-center justify-center h-full text-center p-4 sm:p-8 space-y-4">
+type SuggestedPrompt = {
+  mode: ChatMode;
+  text: string;
+};
+
+const SUGGESTED_PROMPTS: SuggestedPrompt[] = [
+  { mode: 'software', text: 'Explain time complexity in Big O notation' },
+  { mode: 'software', text: 'What are the SOLID principles?' },
+  { mode: 'notetaking', text: 'Summarize the key points from this text: ' },
+  { mode: 'notetaking', text: 'Create a structured outline for: ' },
+  { mode: 'research', text: 'What are the latest developments in: ' },
+  { mode: 'research', text: 'Compare and contrast: ' },
+  { mode: 'general', text: 'Help me understand: ' },
+  { mode: 'general', text: 'Can you explain: ' },
+];
+
+const EmptyState = ({ mode }: { mode: ChatMode }) => (
+  <div className="flex flex-col items-center justify-center h-full text-center p-4 sm:p-8 space-y-2">
     <Bot className="w-10 h-10 sm:w-12 sm:h-12 text-blue-500" />
-    <h2 className="text-xl sm:text-2xl font-semibold">GroqBot</h2>
+    <h2 className="text-xl sm:text-2xl font-semibold">Groq70</h2>
     <p className="text-gray-500 max-w-sm text-sm sm:text-base">
-      an AI assistant powered by Llama 3.1 70B Versatile
+      {mode === 'software' && 'high-performance technical assistant'}
+      {mode === 'notetaking' && 'high-performance note-taking assistant'}
+      {mode === 'research' && 'high-performance research assistant'}
+      {mode === 'general' && 'high-performance general assistant'}
     </p>
   </div>
 );
@@ -32,7 +67,12 @@ const ChatInterface = dynamic(() => Promise.resolve(({
   input,
   setInput,
   handleSubmit,
-  messagesEndRef
+  messagesEndRef,
+  mode,
+  setMode,
+  isCommandOpen,
+  setIsCommandOpen,
+  handleQuickSubmit,
 }: {
   messages: Message[];
   isLoading: boolean;
@@ -40,6 +80,11 @@ const ChatInterface = dynamic(() => Promise.resolve(({
   setInput: (value: string) => void;
   handleSubmit: (e: React.FormEvent) => Promise<void>;
   messagesEndRef: React.RefObject<HTMLDivElement>;
+  mode: ChatMode;
+  setMode: (mode: ChatMode) => void;
+  isCommandOpen: boolean;
+  setIsCommandOpen: (open: boolean) => void;
+  handleQuickSubmit: (text: string, newMode?: ChatMode) => Promise<void>;
 }) => (
   <>
     <div className="p-2 sm:p-4 border-b bg-background sticky top-0 z-10">
@@ -60,9 +105,64 @@ const ChatInterface = dynamic(() => Promise.resolve(({
       </p>
     </div>
 
+    <div className="fixed bottom-4 right-4 z-50">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 bg-background/80 backdrop-blur-sm border-muted-foreground/20 hover:bg-background/90 transition-all"
+          >
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${mode === 'software' ? 'bg-blue-500' :
+                mode === 'notetaking' ? 'bg-green-500' :
+                  mode === 'research' ? 'bg-purple-500' :
+                    'bg-gray-400'
+                }`}></div>
+              <span className="text-xs">
+                {mode === 'software' && 'Technical Interview'}
+                {mode === 'notetaking' && 'Note Taking'}
+                {mode === 'research' && 'Research'}
+                {mode === 'general' && 'General Chat'}
+              </span>
+            </div>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="end"
+          className="w-[200px] animate-in fade-in-0 zoom-in-95"
+        >
+          <DropdownMenuItem onClick={() => setMode('general')}>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+              General Chat
+            </div>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setMode('software')}>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+              Technical Interview
+            </div>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setMode('notetaking')}>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-green-500"></div>
+              Note Taking
+            </div>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setMode('research')}>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+              Research
+            </div>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+
     <main className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-3 sm:space-y-4">
       {messages.length === 0 ? (
-        <EmptyState />
+        <EmptyState mode={mode} />
       ) : (
         messages.map((message, index) => (
           <div key={index} className="flex items-start gap-2 sm:gap-3">
@@ -161,6 +261,55 @@ const ChatInterface = dynamic(() => Promise.resolve(({
       )}
       <div ref={messagesEndRef} />
     </main>
+
+    <CommandDialog open={isCommandOpen} onOpenChange={setIsCommandOpen}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (input.trim()) {
+            handleQuickSubmit(input);
+            setIsCommandOpen(false);
+          }
+        }}
+        className="flex flex-col gap-4"
+      >
+        <div className="sr-only">Quick Chat Command Menu</div>
+        <CommandInput
+          placeholder="Type a message or select a suggestion..."
+          value={input}
+          onValueChange={setInput}
+          autoFocus
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey && input.trim()) {
+              e.preventDefault();
+              handleQuickSubmit(input);
+              setIsCommandOpen(false);
+            }
+          }}
+        />
+        <CommandList className="max-h-[300px] overflow-y-auto">
+          <CommandEmpty>No suggestions found.</CommandEmpty>
+          <CommandGroup heading="Suggested Prompts">
+            {SUGGESTED_PROMPTS.map((prompt, index) => (
+              <CommandItem
+                key={index}
+                onSelect={() => {
+                  handleQuickSubmit(prompt.text, prompt.mode);
+                  setIsCommandOpen(false);
+                }}
+              >
+                <div className={`w-2 h-2 rounded-full ${prompt.mode === 'software' ? 'bg-blue-500' :
+                  prompt.mode === 'notetaking' ? 'bg-green-500' :
+                    prompt.mode === 'research' ? 'bg-purple-500' :
+                      'bg-gray-400'
+                  }`}></div>
+                {prompt.text}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </CommandList>
+      </form>
+    </CommandDialog>
   </>
 )), { ssr: false });
 
@@ -168,19 +317,33 @@ export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [mode, setMode] = useState<ChatMode>('general');
+  const [isCommandOpen, setIsCommandOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  useHotkeys('meta+k, ctrl+k', (e) => {
+    e.preventDefault();
+    setIsCommandOpen(prev => !prev);
+  }, {
+    enableOnFormTags: true,
+    preventDefault: true
+  });
+
+  const handleQuickSubmit = async (text: string, newMode?: ChatMode) => {
+    if (newMode) {
+      setMode(newMode);
+    }
+    setInput('');
+    const fakeEvent = { preventDefault: () => { } } as React.FormEvent;
+    await handleSubmit(fakeEvent, text);
   };
 
-  useEffect(scrollToBottom, [messages]);
-
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent, submittedText?: string) {
     e.preventDefault();
-    if (!input.trim()) return;
+    const textToSubmit = submittedText || input;
+    if (!textToSubmit.trim()) return;
 
-    const newMessage = { role: 'user' as const, content: input };
+    const newMessage = { role: 'user' as const, content: textToSubmit };
     setMessages(prev => [...prev, newMessage]);
     setInput('');
     setIsLoading(true);
@@ -189,7 +352,10 @@ export default function Home() {
       const response = await fetch('/api/groq', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [...messages, newMessage] }),
+        body: JSON.stringify({
+          messages: [...messages, newMessage],
+          mode
+        }),
       });
 
       if (!response.ok) throw new Error('Failed to fetch');
@@ -232,6 +398,11 @@ export default function Home() {
         setInput={setInput}
         handleSubmit={handleSubmit}
         messagesEndRef={messagesEndRef}
+        mode={mode}
+        setMode={setMode}
+        isCommandOpen={isCommandOpen}
+        setIsCommandOpen={setIsCommandOpen}
+        handleQuickSubmit={handleQuickSubmit}
       />
     </div>
   );
