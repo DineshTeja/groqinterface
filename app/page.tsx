@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Send, Bot, Trash2, Minimize2, Menu, Command, FileEdit } from "lucide-react";
+import { Send, Trash2, Minimize2, Menu, Command, FileEdit, Origami } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import dynamic from 'next/dynamic';
@@ -57,15 +57,24 @@ const SUGGESTED_PROMPTS: SuggestedPrompt[] = [
 ];
 
 const EmptyState = ({ mode }: { mode: ChatMode }) => (
-  <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] sm:h-full text-center p-4 sm:p-8 space-y-2">
-    <Bot className="w-10 h-10 sm:w-12 sm:h-12 text-blue-500" />
-    <h2 className="text-xl sm:text-2xl font-semibold">Groq70</h2>
-    <p className="text-gray-500 max-w-sm text-sm sm:text-base">
-      {mode === 'software' && 'high-performance technical assistant'}
-      {mode === 'notetaking' && 'high-performance note-taking assistant'}
-      {mode === 'research' && 'high-performance research assistant'}
-      {mode === 'general' && 'high-performance general assistant'}
-    </p>
+  <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] sm:h-full text-center p-4 sm:p-8 space-y-4">
+    <div className="relative">
+      <div className="absolute inset-0 blur-lg bg-blue-500/20 rounded-full" />
+      <div className="relative bg-gradient-to-tr from-blue-600 to-blue-400 rounded-lg p-1.5 shadow-lg transform-gpu transition-transform hover:scale-110 duration-300">
+        <Origami className="w-6 h-6 sm:w-8 sm:h-8 text-white/90" />
+      </div>
+    </div>
+    <div className="space-y-1">
+      <h2 className="text-lg sm:text-xl font-semibold bg-gradient-to-r from-blue-400 to-blue-600 text-transparent bg-clip-text">
+        Groq70
+      </h2>
+      <p className="text-gray-500 max-w-sm text-sm">
+        {mode === 'software' && 'high-performance technical assistant'}
+        {mode === 'notetaking' && 'high-performance note-taking assistant'}
+        {mode === 'research' && 'high-performance research assistant'}
+        {mode === 'general' && 'high-performance general assistant'}
+      </p>
+    </div>
   </div>
 );
 
@@ -110,7 +119,7 @@ const ChatInterface = dynamic(() => Promise.resolve(({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Type a message..."
-              className="flex-1 text-base border-0 focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[44px]"
+              className="flex-1 text-base border-0 focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[44px] focus-within:ring-blue-500/20"
               disabled={isLoading}
               autoComplete="off"
               autoCorrect="off"
@@ -121,7 +130,7 @@ const ChatInterface = dynamic(() => Promise.resolve(({
               type="submit" 
               size="icon" 
               disabled={isLoading}
-              className="absolute right-1 top-1 bottom-1 h-auto"
+              className="absolute right-1 top-1 bottom-1 h-auto hover:bg-blue-500/10 bg-blue-500/20 text-blue-500/80 hover:text-blue-500"
             >
               <Send className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
@@ -505,7 +514,7 @@ export default function Home() {
               <div className="flex items-center gap-2 transition-transform duration-300 ease-in-out">
                 <Button
                   variant="outline"
-                  className="flex-1 text-xs sm:text-sm whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out"
+                  className="flex-1 text-xs sm:text-sm whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out hover:bg-blue-500/10 hover:text-blue-500 hover:border-blue-500/20"
                   onClick={() => {
                     setSelectedChatId(null);
                     setMessages([]);
@@ -531,8 +540,8 @@ export default function Home() {
                   {chatHistories.map((chat) => (
                     <div
                       key={chat.id}
-                      className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-muted transition-colors ${
-                        selectedChatId === chat.id ? 'bg-muted' : ''
+                      className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-blue-500/5 transition-colors ${
+                        selectedChatId === chat.id ? 'bg-blue-500/10' : ''
                       }`}
                       onClick={() => loadChat(chat.id)}
                     >
@@ -573,10 +582,10 @@ export default function Home() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6 hover:bg-transparent"
+                    className="h-6 w-6 hover:bg-blue-500/10 hover:text-blue-500"
                     onClick={() => setIsSidebarOpen(true)}
                   >
-                    <div className="flex items-center text-[10px] text-muted-foreground/70 hover:text-muted-foreground transition-colors">
+                    <div className="flex items-center text-[10px] text-muted-foreground/70 hover:text-blue-500 transition-colors">
                       <Command className="h-2.5 w-2.5" />
                       <span className="ml-[2px]">E</span>
                     </div>
@@ -636,8 +645,8 @@ export default function Home() {
           {chatHistories.map((chat) => (
             <div
               key={chat.id}
-              className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-muted transition-colors ${
-                selectedChatId === chat.id ? 'bg-muted' : ''
+              className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-blue-500/5 transition-colors ${
+                selectedChatId === chat.id ? 'bg-blue-500/10' : ''
               }`}
               onClick={() => {
                 loadChat(chat.id);
@@ -762,7 +771,7 @@ export default function Home() {
 
               <Button
                 variant="outline"
-                className="flex-1 h-8 text-xs"
+                className="flex-1 h-8 text-xs hover:bg-blue-500/10 hover:text-blue-500 hover:border-blue-500/20"
                 onClick={() => {
                   setSelectedChatId(null);
                   setMessages([]);
