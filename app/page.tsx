@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Send, Bot, ChevronRight, Plus, Trash2, Minimize2, Menu } from "lucide-react";
+import { Send, Bot, Plus, Trash2, Minimize2, Menu, Command, FileEdit } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import dynamic from 'next/dynamic';
@@ -26,6 +26,12 @@ import { useHotkeys } from 'react-hotkeys-hook';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { Database } from "@/types/supabase";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type Message = {
   role: 'user' | 'assistant';
@@ -512,15 +518,47 @@ export default function Home() {
           </div>
         ) : (
           // Collapsed sidebar content
-          <div className="w-10 flex flex-col items-center py-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setIsSidebarOpen(true)}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+          <div className="w-10 flex flex-col items-center py-2 gap-4">
+            <TooltipProvider delayDuration={0}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 hover:bg-transparent"
+                    onClick={() => setIsSidebarOpen(true)}
+                  >
+                    <div className="flex items-center text-[10px] text-muted-foreground/70 hover:text-muted-foreground transition-colors">
+                      <Command className="h-2.5 w-2.5" />
+                      <span className="ml-[2px]">E</span>
+                    </div>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="flex items-center">
+                  Expand Sidebar
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => {
+                      setSelectedChatId(null);
+                      setMessages([]);
+                      setMode('general');
+                    }}
+                  >
+                    <FileEdit className="h-4 w-4 text-muted-foreground" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="flex items-center">
+                  New Chat
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         )}
       </div>
