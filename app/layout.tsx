@@ -15,13 +15,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable} dark`}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=0.8"/>
       </head>
-      <body className={GeistSans.className}>
+      <body className={`${GeistSans.className} dark:bg-background`}>
         {children}
-        <Toaster />
+        <Toaster theme="dark" />
       </body>
     </html>
   );

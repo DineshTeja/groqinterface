@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Send, Bot } from "lucide-react";
+import { Send, Bot, ChevronRight, Plus, Trash2, Minimize2, Menu } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import dynamic from 'next/dynamic';
@@ -23,6 +23,9 @@ import {
   CommandItem,
 } from "@/components/ui/command";
 import { useHotkeys } from 'react-hotkeys-hook';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
+import { Database } from "@/types/supabase";
 
 type Message = {
   role: 'user' | 'assistant';
@@ -68,7 +71,6 @@ const ChatInterface = dynamic(() => Promise.resolve(({
   handleSubmit,
   messagesEndRef,
   mode,
-  setMode,
   isCommandOpen,
   setIsCommandOpen,
   handleQuickSubmit,
@@ -80,83 +82,30 @@ const ChatInterface = dynamic(() => Promise.resolve(({
   handleSubmit: (e: React.FormEvent) => Promise<void>;
   messagesEndRef: React.RefObject<HTMLDivElement>;
   mode: ChatMode;
-  setMode: (mode: ChatMode) => void;
   isCommandOpen: boolean;
   setIsCommandOpen: (open: boolean) => void;
   handleQuickSubmit: (text: string, newMode?: ChatMode) => Promise<void>;
 }) => (
   <>
-    <div className="p-2 sm:p-4 border-b bg-background sticky top-0 z-10">
-      <form onSubmit={handleSubmit} className="flex gap-2">
-        <Input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type a message..."
-          className="flex-1 text-sm"
-          disabled={isLoading}
-        />
-        <Button type="submit" size="icon" disabled={isLoading}>
-          <Send className="h-3 w-3 sm:h-4 sm:w-4" />
-        </Button>
-      </form>
-      <p className="text-[10px] sm:text-xs text-center mt-2 text-muted-foreground">
-        Powered by Llama 3.1 70B via Groq
-      </p>
-    </div>
-
-    <div className="fixed bottom-4 right-4 z-50">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 bg-background/80 backdrop-blur-sm border-muted-foreground/20 hover:bg-background/90 transition-all"
-          >
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${mode === 'software' ? 'bg-blue-500' :
-                mode === 'notetaking' ? 'bg-green-500' :
-                  mode === 'research' ? 'bg-purple-500' :
-                    'bg-gray-400'
-                }`}></div>
-              <span className="text-xs">
-                {mode === 'software' && 'Technical Interview'}
-                {mode === 'notetaking' && 'Note Taking'}
-                {mode === 'research' && 'Research'}
-                {mode === 'general' && 'General Chat'}
-              </span>
-            </div>
+    <div className="sticky top-0 z-10 bg-background border-b">
+      <div className="p-2 sm:p-4 flex flex-col gap-2">
+        <form onSubmit={handleSubmit} className="flex gap-2">
+          <Input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Type a message..."
+            className="flex-1 text-sm"
+            disabled={isLoading}
+          />
+          <Button type="submit" size="icon" disabled={isLoading}>
+            <Send className="h-3 w-3 sm:h-4 sm:w-4" />
           </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="end"
-          className="w-[200px] animate-in fade-in-0 zoom-in-95"
-        >
-          <DropdownMenuItem onClick={() => setMode('general')}>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-              General Chat
-            </div>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setMode('software')}>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-              Technical Interview
-            </div>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setMode('notetaking')}>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-green-500"></div>
-              Note Taking
-            </div>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setMode('research')}>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-              Research
-            </div>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        </form>
+        
+        <p className="text-[10px] sm:text-xs text-center text-muted-foreground">
+          Powered by Llama 3.1 70B via Groq
+        </p>
+      </div>
     </div>
 
     <main className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-3 sm:space-y-4">
@@ -315,10 +264,21 @@ export default function Home() {
   const [mode, setMode] = useState<ChatMode>('general');
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [chatHistories, setChatHistories] = useState<Database['public']['Tables']['chat_histories']['Row'][]>([]);
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useHotkeys('meta+k, ctrl+k', (e) => {
     e.preventDefault();
     setIsCommandOpen(prev => !prev);
+  }, {
+    enableOnFormTags: true,
+    preventDefault: true
+  });
+
+  useHotkeys('meta+e, ctrl+e', (e) => {
+    e.preventDefault();
+    setIsSidebarOpen(prev => !prev);
   }, {
     enableOnFormTags: true,
     preventDefault: true
@@ -332,6 +292,63 @@ export default function Home() {
     const fakeEvent = { preventDefault: () => { } } as React.FormEvent;
     await handleSubmit(fakeEvent, text);
   };
+
+  const loadChatHistories = async () => {
+    const { data, error } = await supabase
+      .from('chat_histories')
+      .select('*')
+      .order('updated_at', { ascending: false });
+
+    if (error) {
+      console.error('Error loading chat histories:', error);
+      toast.error('Failed to load chat histories');
+      return;
+    }
+
+    setChatHistories(data);
+  };
+
+  const deleteChat = async (id: string) => {
+    const { error } = await supabase
+      .from('chat_histories')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting chat:', error);
+      toast.error('Failed to delete chat');
+      return;
+    }
+
+    if (selectedChatId === id) {
+      setSelectedChatId(null);
+      setMessages([]);
+    }
+    loadChatHistories();
+    toast.success('Chat deleted successfully');
+  };
+
+  const loadChat = async (id: string) => {
+    const { data, error } = await supabase
+      .from('chat_histories')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      console.error('Error loading chat:', error);
+      toast.error('Failed to load chat');
+      return;
+    }
+
+    setMessages(data.messages as Message[]);
+    setMode(data.mode as ChatMode);
+    setSelectedChatId(id);
+  };
+
+  useEffect(() => {
+    loadChatHistories();
+  }, []);
 
   async function handleSubmit(e: React.FormEvent, submittedText?: string) {
     e.preventDefault();
@@ -359,12 +376,14 @@ export default function Home() {
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
+      let fullResponse = '';
 
       while (true) {
         const { done, value } = await reader!.read();
         if (done) break;
 
         const chunk = decoder.decode(value);
+        fullResponse += chunk;
         setMessages(prev => [
           ...prev.slice(0, -1),
           {
@@ -372,6 +391,43 @@ export default function Home() {
             content: prev[prev.length - 1].content + chunk
           }
         ]);
+      }
+
+      const updatedMessages = [...messages, newMessage, { role: 'assistant', content: fullResponse }];
+      
+      if (selectedChatId) {
+        const { error } = await supabase
+          .from('chat_histories')
+          .update({
+            messages: updatedMessages,
+          })
+          .eq('id', selectedChatId);
+
+        if (error) {
+          console.error('Error updating chat:', error);
+          toast.error('Failed to update chat history');
+        }
+      } else {
+        const title = newMessage.content.slice(0, 50) + (newMessage.content.length > 50 ? '...' : '');
+        const { data, error } = await supabase
+          .from('chat_histories')
+          .insert([
+            {
+              title,
+              messages: updatedMessages,
+              mode,
+            },
+          ])
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error creating chat:', error);
+          toast.error('Failed to create chat history');
+        } else {
+          setSelectedChatId(data.id);
+          loadChatHistories();
+        }
       }
     } catch (error) {
       console.error('Error:', error);
@@ -385,20 +441,239 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-col h-screen max-w-4xl mx-auto">
-      <ChatInterface
-        messages={messages}
-        isLoading={isLoading}
-        input={input}
-        setInput={setInput}
-        handleSubmit={handleSubmit}
-        messagesEndRef={messagesEndRef}
-        mode={mode}
-        setMode={setMode}
-        isCommandOpen={isCommandOpen}
-        setIsCommandOpen={setIsCommandOpen}
-        handleQuickSubmit={handleQuickSubmit}
-      />
+    <div className="flex h-screen">
+      <div 
+        className={`hidden sm:block ${
+          isSidebarOpen ? 'sm:w-64' : 'sm:w-10'
+        } border-r bg-muted/50 transition-all duration-300 overflow-hidden`}
+      >
+        {isSidebarOpen ? (
+          // Expanded sidebar content
+          <>
+            <div className="p-4 border-b bg-background sticky top-0 flex items-center gap-2">
+              <Button
+                variant="outline"
+                className="flex-1 text-xs sm:text-sm"
+                onClick={() => {
+                  setSelectedChatId(null);
+                  setMessages([]);
+                  setMode('general');
+                }}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                New Chat
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <Minimize2 className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-2 space-y-2">
+              {chatHistories.map((chat) => (
+                <div
+                  key={chat.id}
+                  className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-muted transition-colors ${
+                    selectedChatId === chat.id ? 'bg-muted' : ''
+                  }`}
+                  onClick={() => loadChat(chat.id)}
+                >
+                  <div className="flex-1 truncate text-xs sm:text-sm">
+                    {chat.title}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="opacity-0 group-hover:opacity-100 h-6 w-6"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteChat(chat.id);
+                    }}
+                  >
+                    <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          // Collapsed sidebar content
+          <div className="w-10 flex flex-col items-center py-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setIsSidebarOpen(true)}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </div>
+
+      <div 
+        className={`
+          fixed inset-x-0 bottom-0 z-50 sm:hidden
+          transform transition-transform duration-300 ease-in-out
+          ${isSidebarOpen ? 'translate-y-0' : 'translate-y-full'}
+        `}
+      >
+        <div className="bg-background border-t rounded-t-lg max-h-[80vh] flex flex-col shadow-lg">
+          <div className="p-4 border-b flex items-center justify-between sticky top-0 bg-background rounded-t-lg">
+            <h2 className="font-semibold">Chat History</h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setIsSidebarOpen(false)}
+            >
+              <Minimize2 className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="overflow-y-auto p-2 space-y-2 flex-1">
+            {chatHistories.map((chat) => (
+              <div
+                key={chat.id}
+                className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-muted transition-colors ${
+                  selectedChatId === chat.id ? 'bg-muted' : ''
+                }`}
+                onClick={() => {
+                  loadChat(chat.id);
+                  setIsSidebarOpen(false);
+                }}
+              >
+                <div className="flex-1 truncate text-sm">
+                  {chat.title}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="opacity-0 group-hover:opacity-100 h-6 w-6"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteChat(chat.id);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            {chatHistories.length === 0 && (
+              <div className="text-sm text-muted-foreground text-center py-4">
+                No chat history yet
+              </div>
+            )}
+          </div>
+          <div className="h-16" /> {/* Add padding at bottom to account for toolbar */}
+        </div>
+      </div>
+
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 sm:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      <div className="flex-1 flex flex-col w-full relative">
+        <div className="max-w-4xl mx-auto w-full">
+          <ChatInterface
+            messages={messages}
+            isLoading={isLoading}
+            input={input}
+            setInput={setInput}
+            handleSubmit={handleSubmit}
+            messagesEndRef={messagesEndRef}
+            mode={mode}
+            isCommandOpen={isCommandOpen}
+            setIsCommandOpen={setIsCommandOpen}
+            handleQuickSubmit={handleQuickSubmit}
+          />
+        </div>
+
+        <div className="fixed bottom-4 inset-x-4 z-40 sm:hidden">
+          <div className="bg-background/80 backdrop-blur-sm border rounded-lg p-2 flex items-center justify-between gap-2 shadow-lg h-[48px]">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setIsSidebarOpen(true)}
+            >
+              <Menu className="h-4 w-4" />
+            </Button>
+
+            <Button
+              variant="outline"
+              className="flex-1 h-8 text-xs"
+              onClick={() => {
+                setSelectedChatId(null);
+                setMessages([]);
+                setMode('general');
+              }}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              New Chat
+            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${
+                      mode === 'software' ? 'bg-blue-500' :
+                      mode === 'notetaking' ? 'bg-green-500' :
+                      mode === 'research' ? 'bg-purple-500' :
+                      'bg-gray-400'
+                    }`} />
+                    <span className="text-xs">
+                      {mode === 'software' && 'Technical'}
+                      {mode === 'notetaking' && 'Notes'}
+                      {mode === 'research' && 'Research'}
+                      {mode === 'general' && 'General'}
+                    </span>
+                  </div>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-[200px] animate-in fade-in-0 zoom-in-95"
+              >
+                <DropdownMenuItem onClick={() => setMode('general')}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                    General Chat
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setMode('software')}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                    Technical Interview
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setMode('notetaking')}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                    Note Taking
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setMode('research')}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                    Research
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
