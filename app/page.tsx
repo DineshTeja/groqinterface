@@ -69,6 +69,15 @@ const EmptyState = ({ mode }: { mode: ChatMode }) => (
   </div>
 );
 
+const SidebarEmptyState = () => (
+  <div className="flex flex-col items-center justify-center h-full text-center p-4 space-y-2 text-muted-foreground/60">
+    <FileEdit className="h-8 w-8" />
+    <div className="space-y-1">
+      <h3 className="font-medium text-sm">No chats yet</h3>
+    </div>
+  </div>
+);
+
 const ChatInterface = dynamic(() => Promise.resolve(({
   messages,
   isLoading,
@@ -488,63 +497,76 @@ export default function Home() {
       <div 
         className={`hidden sm:block ${
           isSidebarOpen ? 'sm:w-64' : 'sm:w-10'
-        } border-r bg-muted/50 transition-all duration-300 overflow-hidden sticky top-0 h-screen`}
+        } border-r bg-muted/50 transition-all duration-300 ease-in-out overflow-hidden sticky top-0 h-screen`}
       >
         {isSidebarOpen ? (
-          // Expanded sidebar content
-          <div className="flex flex-col h-full">
-            <div className="p-4 border-b bg-background flex items-center gap-2">
-              <Button
-                variant="outline"
-                className="flex-1 text-xs sm:text-sm"
-                onClick={() => {
-                  setSelectedChatId(null);
-                  setMessages([]);
-                  setMode('general');
-                }}
-              >
-                <FileEdit className="mr-2 h-4 w-4" />
-                New Chat
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setIsSidebarOpen(false)}
-              >
-                <Minimize2 className="h-4 w-4" />
-              </Button>
+          <div className="flex flex-col h-full opacity-100 transition-opacity duration-300 ease-in-out">
+            <div className="p-4 border-b bg-background">
+              <div className="flex items-center gap-2 transition-transform duration-300 ease-in-out">
+                <Button
+                  variant="outline"
+                  className="flex-1 text-xs sm:text-sm whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out"
+                  onClick={() => {
+                    setSelectedChatId(null);
+                    setMessages([]);
+                    setMode('general');
+                  }}
+                >
+                  <FileEdit className="mr-2 h-4 w-4 flex-shrink-0" />
+                  <span className="transition-opacity duration-300 ease-in-out">New Chat</span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 flex-shrink-0 transition-all duration-300 ease-in-out"
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  <Minimize2 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-2">
-              {chatHistories.map((chat) => (
-                <div
-                  key={chat.id}
-                  className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-muted transition-colors ${
-                    selectedChatId === chat.id ? 'bg-muted' : ''
-                  }`}
-                  onClick={() => loadChat(chat.id)}
-                >
-                  <div className="flex-1 truncate text-base">
-                    {chat.title}
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="opacity-0 group-hover:opacity-100 h-6 w-6"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteChat(chat.id);
-                    }}
-                  >
-                    <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                  </Button>
+              {chatHistories.length > 0 ? (
+                <div className="opacity-100 transition-opacity duration-300 ease-in-out delay-150">
+                  {chatHistories.map((chat) => (
+                    <div
+                      key={chat.id}
+                      className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-muted transition-colors ${
+                        selectedChatId === chat.id ? 'bg-muted' : ''
+                      }`}
+                      onClick={() => loadChat(chat.id)}
+                    >
+                      <div className="flex-1 truncate text-base">
+                        {chat.title}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="opacity-0 group-hover:opacity-100 h-6 w-6 transition-opacity duration-200"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteChat(chat.id);
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              ) : (
+                <div 
+                  className={`
+                    opacity-0 transition-opacity duration-200 ease-in-out
+                    ${isSidebarOpen ? 'opacity-100 delay-500' : 'opacity-0 invisible'}
+                  `}
+                >
+                  <SidebarEmptyState />
+                </div>
+              )}
             </div>
           </div>
         ) : (
-          // Collapsed sidebar content
-          <div className="w-10 flex flex-col items-center py-2 gap-4">
+          <div className="w-10 flex flex-col items-center py-2 gap-4 opacity-100 transition-opacity duration-300 ease-in-out">
             <TooltipProvider delayDuration={0}>
               <Tooltip>
                 <TooltipTrigger asChild>
