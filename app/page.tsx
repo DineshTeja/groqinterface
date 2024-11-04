@@ -765,7 +765,7 @@ export default function Home() {
                         mode === 'research' ? 'bg-purple-500' :
                         'bg-gray-400'
                       }`} />
-                      <span className="text-base">
+                      <span className="text-xs">
                         {mode === 'software' && 'Technical'}
                         {mode === 'notetaking' && 'Notes'}
                         {mode === 'research' && 'Research'}
