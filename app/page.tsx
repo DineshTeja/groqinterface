@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Send, Bot, Plus, Trash2, Minimize2, Menu, Command, FileEdit } from "lucide-react";
+import { Send, Bot, Trash2, Minimize2, Menu, Command, FileEdit } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import dynamic from 'next/dynamic';
@@ -503,7 +503,7 @@ export default function Home() {
                   setMode('general');
                 }}
               >
-                <Plus className="mr-2 h-4 w-4" />
+                <FileEdit className="mr-2 h-4 w-4" />
                 New Chat
               </Button>
               <Button
@@ -748,7 +748,7 @@ export default function Home() {
                   setMode('general');
                 }}
               >
-                <Plus className="mr-2 h-4 w-4" />
+                <FileEdit className="mr-2 h-4 w-4" />
                 New Chat
               </Button>
 
