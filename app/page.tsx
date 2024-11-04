@@ -101,7 +101,7 @@ const ChatInterface = dynamic(() => Promise.resolve(({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Type a message..."
-              className="flex-1 text-sm border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+              className="flex-1 text-base border-0 focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[44px]"
               disabled={isLoading}
               autoComplete="off"
               autoCorrect="off"
@@ -118,7 +118,7 @@ const ChatInterface = dynamic(() => Promise.resolve(({
             </Button>
           </form>
           
-          <p className="text-[10px] sm:text-xs text-center text-muted-foreground hidden sm:block">
+          <p className="text-base text-center text-muted-foreground hidden sm:block">
             Powered by Llama 3.1 70B via Groq
           </p>
         </div>
@@ -131,11 +131,11 @@ const ChatInterface = dynamic(() => Promise.resolve(({
       ) : (
         messages.map((message, index) => (
           <div key={index} className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground ml-1">
+            <span className="text-base text-muted-foreground ml-1">
               {message.role === 'user' ? 'You' : 'Groq70'}
             </span>
             <Card className={`w-full ${message.role === 'assistant' ? 'bg-muted' : ''}`}>
-              <CardContent className="p-2 sm:p-3 text-xs sm:text-sm break-words">
+              <CardContent className="p-2 sm:p-3 text-base break-words">
                 <div className="prose prose-sm dark:prose-invert max-w-none">
                   {message.role === 'user' ? (
                     message.content
@@ -524,7 +524,7 @@ export default function Home() {
                   }`}
                   onClick={() => loadChat(chat.id)}
                 >
-                  <div className="flex-1 truncate text-xs sm:text-sm">
+                  <div className="flex-1 truncate text-base">
                     {chat.title}
                   </div>
                   <Button
@@ -622,7 +622,7 @@ export default function Home() {
                   setIsSidebarOpen(false);
                 }}
               >
-                <div className="flex-1 truncate text-sm">
+                <div className="flex-1 truncate text-base">
                   {chat.title}
                 </div>
                 <Button
@@ -686,7 +686,7 @@ export default function Home() {
                     mode === 'research' ? 'bg-purple-500' :
                     'bg-gray-400'
                   }`} />
-                  <span className="text-xs">
+                  <span className="text-base">
                     {mode === 'software' && 'Technical'}
                     {mode === 'notetaking' && 'Notes'}
                     {mode === 'research' && 'Research'}
@@ -766,7 +766,7 @@ export default function Home() {
                         mode === 'research' ? 'bg-purple-500' :
                         'bg-gray-400'
                       }`} />
-                      <span className="text-xs">
+                      <span className="text-base">
                         {mode === 'software' && 'Technical'}
                         {mode === 'notetaking' && 'Notes'}
                         {mode === 'research' && 'Research'}
