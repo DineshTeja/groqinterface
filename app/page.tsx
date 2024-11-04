@@ -51,7 +51,7 @@ const SUGGESTED_PROMPTS: SuggestedPrompt[] = [
 ];
 
 const EmptyState = ({ mode }: { mode: ChatMode }) => (
-  <div className="flex flex-col items-center justify-center h-full text-center p-4 sm:p-8 space-y-2">
+  <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] sm:h-full text-center p-4 sm:p-8 space-y-2">
     <Bot className="w-10 h-10 sm:w-12 sm:h-12 text-blue-500" />
     <h2 className="text-xl sm:text-2xl font-semibold">Groq70</h2>
     <p className="text-gray-500 max-w-sm text-sm sm:text-base">
@@ -87,28 +87,35 @@ const ChatInterface = dynamic(() => Promise.resolve(({
   handleQuickSubmit: (text: string, newMode?: ChatMode) => Promise<void>;
 }) => (
   <>
-    <div className="sticky top-0 z-10 bg-background border-b">
-      <div className="p-2 sm:p-4 flex flex-col gap-2">
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Type a message..."
-            className="flex-1 text-sm"
-            disabled={isLoading}
-          />
-          <Button type="submit" size="icon" disabled={isLoading}>
-            <Send className="h-3 w-3 sm:h-4 sm:w-4" />
-          </Button>
-        </form>
-        
-        <p className="text-[10px] sm:text-xs text-center text-muted-foreground">
-          Powered by Llama 3.1 70B via Groq
-        </p>
+    <div className="sm:sticky sm:top-0 fixed bottom-[72px] sm:bottom-auto left-0 right-0 z-10 bg-background border-t sm:border-t-0 sm:border-b px-4 sm:px-2">
+      <div className="max-w-4xl mx-auto">
+        <div className="py-2 sm:py-4 flex flex-col gap-2">
+          <form onSubmit={handleSubmit} className="relative flex items-center gap-2 bg-input rounded-md focus-within:ring-1 focus-within:ring-ring">
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Type a message..."
+              className="flex-1 text-sm border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+              disabled={isLoading}
+            />
+            <Button 
+              type="submit" 
+              size="icon" 
+              disabled={isLoading}
+              className="absolute right-1 top-1 bottom-1 h-auto"
+            >
+              <Send className="h-3 w-3 sm:h-4 sm:w-4" />
+            </Button>
+          </form>
+          
+          <p className="text-[10px] sm:text-xs text-center text-muted-foreground hidden sm:block">
+            Powered by Llama 3.1 70B via Groq
+          </p>
+        </div>
       </div>
     </div>
 
-    <main className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-3 sm:space-y-4">
+    <main className="flex-1 overflow-y-auto p-2 pb-[140px] sm:pb-4 sm:p-4 space-y-3 sm:space-y-4">
       {messages.length === 0 ? (
         <EmptyState mode={mode} />
       ) : (
@@ -592,6 +599,62 @@ export default function Home() {
             setIsCommandOpen={setIsCommandOpen}
             handleQuickSubmit={handleQuickSubmit}
           />
+        </div>
+
+        <div className="fixed bottom-4 right-4 z-40 hidden sm:block">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 bg-background/80 backdrop-blur-sm border-muted-foreground/20"
+              >
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${
+                    mode === 'software' ? 'bg-blue-500' :
+                    mode === 'notetaking' ? 'bg-green-500' :
+                    mode === 'research' ? 'bg-purple-500' :
+                    'bg-gray-400'
+                  }`} />
+                  <span className="text-xs">
+                    {mode === 'software' && 'Technical'}
+                    {mode === 'notetaking' && 'Notes'}
+                    {mode === 'research' && 'Research'}
+                    {mode === 'general' && 'General'}
+                  </span>
+                </div>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="w-[200px] animate-in fade-in-0 zoom-in-95"
+            >
+              <DropdownMenuItem onClick={() => setMode('general')}>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                  General Chat
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setMode('software')}>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                  Technical Interview
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setMode('notetaking')}>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                  Note Taking
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setMode('research')}>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                  Research
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <div className="fixed bottom-4 inset-x-4 z-40 sm:hidden">
