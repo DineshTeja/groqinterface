@@ -484,7 +484,7 @@ export default function Home() {
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-[100dvh] overflow-hidden">
       <div 
         className={`hidden sm:block ${
           isSidebarOpen ? 'sm:w-64' : 'sm:w-10'
@@ -596,56 +596,55 @@ export default function Home() {
           ${!isMobile ? 'sm:hidden' : ''}
           ${isSidebarOpen ? 'translate-y-0' : 'translate-y-full'}
           ${isMobile ? '' : 'hidden'}
+          bg-background h-[80dvh] flex flex-col overflow-hidden rounded-t-lg shadow-lg
         `}
       >
-        <div className="bg-background border-t rounded-t-lg max-h-[80vh] flex flex-col shadow-lg">
-          <div className="p-4 border-b flex items-center justify-between sticky top-0 bg-background rounded-t-lg">
-            <h2 className="font-semibold">Chat History</h2>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setIsSidebarOpen(false)}
+        <div className="p-4 border-b flex items-center justify-between sticky top-0 bg-background rounded-t-lg">
+          <h2 className="font-semibold">Chat History</h2>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setIsSidebarOpen(false)}
+          >
+            <Minimize2 className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="overflow-y-auto flex-1 p-2 space-y-2">
+          {chatHistories.map((chat) => (
+            <div
+              key={chat.id}
+              className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-muted transition-colors ${
+                selectedChatId === chat.id ? 'bg-muted' : ''
+              }`}
+              onClick={() => {
+                loadChat(chat.id);
+                setIsSidebarOpen(false);
+              }}
             >
-              <Minimize2 className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="overflow-y-auto p-2 space-y-2 flex-1">
-            {chatHistories.map((chat) => (
-              <div
-                key={chat.id}
-                className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-muted transition-colors ${
-                  selectedChatId === chat.id ? 'bg-muted' : ''
-                }`}
-                onClick={() => {
-                  loadChat(chat.id);
-                  setIsSidebarOpen(false);
+              <div className="flex-1 truncate text-base">
+                {chat.title}
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="opacity-0 group-hover:opacity-100 h-6 w-6"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteChat(chat.id);
                 }}
               >
-                <div className="flex-1 truncate text-base">
-                  {chat.title}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="opacity-0 group-hover:opacity-100 h-6 w-6"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteChat(chat.id);
-                  }}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-            {chatHistories.length === 0 && (
-              <div className="text-sm text-muted-foreground text-center py-4">
-                No chat history yet
-              </div>
-            )}
-          </div>
-          <div className="h-16" /> {/* Add padding at bottom to account for toolbar */}
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+          {chatHistories.length === 0 && (
+            <div className="text-sm text-muted-foreground text-center py-4">
+              No chat history yet
+            </div>
+          )}
         </div>
+        <div className="h-16" /> {/* Add padding at bottom to account for toolbar */}
       </div>
 
       {isSidebarOpen && isMobile && (
@@ -655,8 +654,8 @@ export default function Home() {
         />
       )}
 
-      <div className="flex-1 flex flex-col w-full relative">
-        <div className="max-w-4xl mx-auto w-full">
+      <div className="flex-1 flex flex-col w-full relative overflow-hidden">
+        <div className="max-w-4xl mx-auto w-full h-full">
           <ChatInterface
             messages={messages}
             isLoading={isLoading}
