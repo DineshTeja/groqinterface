@@ -93,7 +93,7 @@ const ChatInterface = dynamic(() => Promise.resolve(({
   handleQuickSubmit: (text: string, newMode?: ChatMode) => Promise<void>;
 }) => (
   <>
-    <div className="sm:sticky sm:top-0 fixed bottom-[64px] sm:bottom-auto left-0 right-0 z-10 bg-background/95 backdrop-blur-md border-t sm:border-t-0 sm:border-b px-4 sm:px-2 sm:bg-background">
+    <div className="sm:sticky sm:top-0 fixed bottom-[56px] sm:bottom-auto left-0 right-0 z-10 bg-background/95 backdrop-blur-md border-t sm:border-t-0 sm:border-b px-4 sm:px-2">
       <div className="max-w-4xl mx-auto">
         <div className="py-2 sm:py-4 flex flex-col gap-2">
           <form onSubmit={handleSubmit} className="relative flex items-center gap-2 bg-input rounded-md focus-within:ring-1 focus-within:ring-ring">
@@ -125,7 +125,7 @@ const ChatInterface = dynamic(() => Promise.resolve(({
       </div>
     </div>
 
-    <main className="flex-1 overflow-y-auto p-2 pb-[140px] sm:pb-4 sm:p-4 space-y-3 sm:space-y-4">
+    <main className="flex-1 overflow-y-auto p-2 pb-[140px] sm:pb-4 sm:p-4 space-y-3 sm:space-y-4 h-[calc(100dvh-112px)] sm:h-[calc(100vh-80px)]">
       {messages.length === 0 ? (
         <EmptyState mode={mode} />
       ) : (
@@ -727,9 +727,9 @@ export default function Home() {
           </DropdownMenu>
         </div>
 
-        <div className="fixed bottom-0 inset-x-0 z-40 sm:hidden bg-background/95 backdrop-blur-md px-4 border-t">
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-background border rounded-lg p-2 flex items-center justify-between gap-2 shadow-lg h-[48px] my-2">
+        <div className="fixed bottom-0 inset-x-0 z-40 sm:hidden bg-background/95 backdrop-blur-md px-4 border-t h-[56px] flex items-center">
+          <div className="max-w-4xl mx-auto w-full">
+            <div className="bg-background border rounded-lg p-2 flex items-center justify-between gap-2 shadow-lg h-[48px]">
               <Button
                 variant="outline"
                 size="icon"
