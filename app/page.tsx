@@ -284,6 +284,7 @@ export default function Home() {
   const [chatHistories, setChatHistories] = useState<Database['public']['Tables']['chat_histories']['Row'][]>([]);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
 
   useHotkeys('meta+k, ctrl+k', (e) => {
     e.preventDefault();
@@ -366,6 +367,31 @@ export default function Home() {
   useEffect(() => {
     loadChatHistories();
   }, []);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      const isMobileView = window.innerWidth < 640; // 640px is the 'sm' breakpoint
+      setIsMobile(isMobileView);
+      if (isMobileView) {
+        setIsSidebarOpen(false);
+      }
+    };
+
+    // Check initial screen size
+    checkMobile();
+
+    // Add event listener for window resize
+    window.addEventListener('resize', checkMobile);
+
+    // Cleanup
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  useEffect(() => {
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
+  }, [isMobile]);
 
   async function handleSubmit(e: React.FormEvent, submittedText?: string) {
     e.preventDefault();
@@ -565,9 +591,11 @@ export default function Home() {
 
       <div 
         className={`
-          fixed inset-x-0 bottom-0 z-50 sm:hidden
+          fixed inset-x-0 bottom-0 z-50
           transform transition-transform duration-300 ease-in-out
+          ${!isMobile ? 'sm:hidden' : ''}
           ${isSidebarOpen ? 'translate-y-0' : 'translate-y-full'}
+          ${isMobile ? '' : 'hidden'}
         `}
       >
         <div className="bg-background border-t rounded-t-lg max-h-[80vh] flex flex-col shadow-lg">
@@ -620,7 +648,7 @@ export default function Home() {
         </div>
       </div>
 
-      {isSidebarOpen && (
+      {isSidebarOpen && isMobile && (
         <div 
           className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 sm:hidden"
           onClick={() => setIsSidebarOpen(false)}
