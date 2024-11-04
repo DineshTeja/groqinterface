@@ -17,9 +17,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable} dark`}>
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=0.8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
       </head>
-      <body className={`${GeistSans.className} dark:bg-background`}>
+      <body className={`${GeistSans.className} dark:bg-background touch-none`}>
         {children}
         <Toaster theme="dark" />
       </body>

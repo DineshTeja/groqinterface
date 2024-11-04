@@ -87,7 +87,7 @@ const ChatInterface = dynamic(() => Promise.resolve(({
   handleQuickSubmit: (text: string, newMode?: ChatMode) => Promise<void>;
 }) => (
   <>
-    <div className="sm:sticky sm:top-0 fixed bottom-[72px] sm:bottom-auto left-0 right-0 z-10 bg-background border-t sm:border-t-0 sm:border-b px-4 sm:px-2">
+    <div className="sm:sticky sm:top-0 fixed bottom-[64px] sm:bottom-auto left-0 right-0 z-10 bg-background/95 backdrop-blur-md border-t sm:border-t-0 sm:border-b px-4 sm:px-2 sm:bg-background">
       <div className="max-w-4xl mx-auto">
         <div className="py-2 sm:py-4 flex flex-col gap-2">
           <form onSubmit={handleSubmit} className="relative flex items-center gap-2 bg-input rounded-md focus-within:ring-1 focus-within:ring-ring">
@@ -97,6 +97,10 @@ const ChatInterface = dynamic(() => Promise.resolve(({
               placeholder="Type a message..."
               className="flex-1 text-sm border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
               disabled={isLoading}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
             />
             <Button 
               type="submit" 
@@ -452,12 +456,12 @@ export default function Home() {
       <div 
         className={`hidden sm:block ${
           isSidebarOpen ? 'sm:w-64' : 'sm:w-10'
-        } border-r bg-muted/50 transition-all duration-300 overflow-hidden`}
+        } border-r bg-muted/50 transition-all duration-300 overflow-hidden sticky top-0 h-screen`}
       >
         {isSidebarOpen ? (
           // Expanded sidebar content
-          <>
-            <div className="p-4 border-b bg-background sticky top-0 flex items-center gap-2">
+          <div className="flex flex-col h-full">
+            <div className="p-4 border-b bg-background flex items-center gap-2">
               <Button
                 variant="outline"
                 className="flex-1 text-xs sm:text-sm"
@@ -505,7 +509,7 @@ export default function Home() {
                 </div>
               ))}
             </div>
-          </>
+          </div>
         ) : (
           // Collapsed sidebar content
           <div className="w-10 flex flex-col items-center py-2">
@@ -657,83 +661,85 @@ export default function Home() {
           </DropdownMenu>
         </div>
 
-        <div className="fixed bottom-4 inset-x-4 z-40 sm:hidden">
-          <div className="bg-background/80 backdrop-blur-sm border rounded-lg p-2 flex items-center justify-between gap-2 shadow-lg h-[48px]">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setIsSidebarOpen(true)}
-            >
-              <Menu className="h-4 w-4" />
-            </Button>
-
-            <Button
-              variant="outline"
-              className="flex-1 h-8 text-xs"
-              onClick={() => {
-                setSelectedChatId(null);
-                setMessages([]);
-                setMode('general');
-              }}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              New Chat
-            </Button>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${
-                      mode === 'software' ? 'bg-blue-500' :
-                      mode === 'notetaking' ? 'bg-green-500' :
-                      mode === 'research' ? 'bg-purple-500' :
-                      'bg-gray-400'
-                    }`} />
-                    <span className="text-xs">
-                      {mode === 'software' && 'Technical'}
-                      {mode === 'notetaking' && 'Notes'}
-                      {mode === 'research' && 'Research'}
-                      {mode === 'general' && 'General'}
-                    </span>
-                  </div>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="w-[200px] animate-in fade-in-0 zoom-in-95"
+        <div className="fixed bottom-0 inset-x-0 z-40 sm:hidden bg-background/95 backdrop-blur-md px-4 border-t">
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-background border rounded-lg p-2 flex items-center justify-between gap-2 shadow-lg h-[48px] my-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setIsSidebarOpen(true)}
               >
-                <DropdownMenuItem onClick={() => setMode('general')}>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-                    General Chat
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setMode('software')}>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                    Technical Interview
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setMode('notetaking')}>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                    Note Taking
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setMode('research')}>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                    Research
-                  </div>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                <Menu className="h-4 w-4" />
+              </Button>
+
+              <Button
+                variant="outline"
+                className="flex-1 h-8 text-xs"
+                onClick={() => {
+                  setSelectedChatId(null);
+                  setMessages([]);
+                  setMode('general');
+                }}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                New Chat
+              </Button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${
+                        mode === 'software' ? 'bg-blue-500' :
+                        mode === 'notetaking' ? 'bg-green-500' :
+                        mode === 'research' ? 'bg-purple-500' :
+                        'bg-gray-400'
+                      }`} />
+                      <span className="text-xs">
+                        {mode === 'software' && 'Technical'}
+                        {mode === 'notetaking' && 'Notes'}
+                        {mode === 'research' && 'Research'}
+                        {mode === 'general' && 'General'}
+                      </span>
+                    </div>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="w-[200px] animate-in fade-in-0 zoom-in-95"
+                >
+                  <DropdownMenuItem onClick={() => setMode('general')}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                      General Chat
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setMode('software')}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                      Technical Interview
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setMode('notetaking')}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                      Note Taking
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setMode('research')}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                      Research
+                    </div>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
       </div>
