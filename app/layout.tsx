@@ -24,7 +24,14 @@ export default function RootLayout({
       </head>
       <body className={`${GeistSans.className} dark:bg-background touch-none`}>
         {children}
-        <Toaster theme="dark" />
+        <Toaster 
+          theme="dark" 
+          position="top-center"
+          className="sm:!bottom-4 sm:!top-auto"
+          toastOptions={{
+            className: 'sm:!mb-0 sm:!mt-0',
+          }}
+        />
       </body>
     </html>
   );
