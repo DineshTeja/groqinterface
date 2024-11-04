@@ -161,19 +161,16 @@ const ChatInterface = dynamic(() => Promise.resolve(({
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       components={{
-                        // Style links
                         a: ({ children, ...props }) => (
                           <a {...props} className="text-blue-500 hover:underline">
                             {children}
                           </a>
                         ),
-                        // Style code blocks
                         code: ({ children, ...props }) => (
                           <code {...props} className="bg-muted-foreground/20 rounded px-1 py-0.5">
                             {children}
                           </code>
                         ),
-                        // Style lists
                         ul: ({ children, ...props }) => (
                           <ul {...props} className="list-disc pl-4 my-2">
                             {children}
@@ -184,7 +181,6 @@ const ChatInterface = dynamic(() => Promise.resolve(({
                             {children}
                           </ol>
                         ),
-                        // Add these new table-related components
                         table: ({ children, ...props }) => (
                           <div className="overflow-x-auto my-4">
                             <table {...props} className="min-w-full border-collapse border border-border">
