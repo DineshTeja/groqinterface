@@ -544,7 +544,6 @@ export default function Home() {
       setMessages([]);
     }
     loadChatHistories();
-    toast.success('Chat deleted successfully');
   };
 
   const loadChat = async (id: string) => {
