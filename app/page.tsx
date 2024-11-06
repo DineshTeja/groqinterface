@@ -48,6 +48,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge";
+import React from 'react';
 
 type CodeProps = {
   inline?: boolean;
@@ -122,11 +123,11 @@ const CollectionSelect = ({
     value={selectedCollectionId || "standard"}
     onValueChange={(value) => setSelectedCollectionId(value === "standard" ? null : value)}
   >
-    <SelectTrigger className="w-full h-8">
+    <SelectTrigger className="w-full h-8 px-2 text-sm bg-background/50 backdrop-blur-sm border-muted-foreground/20 hover:bg-accent transition-colors">
       <SelectValue placeholder="Select Collection">
         <div className="flex items-center gap-2">
-          <Folder className="h-4 w-4" />
-          <span>
+          <Folder className="h-4 w-4 text-muted-foreground/70" />
+          <span className="truncate">
             {selectedCollectionId 
               ? collections.find(c => c.id === selectedCollectionId)?.name 
               : 'Standard Chats'}
@@ -134,18 +135,18 @@ const CollectionSelect = ({
         </div>
       </SelectValue>
     </SelectTrigger>
-    <SelectContent>
-      <SelectItem value="standard">
+    <SelectContent className="min-w-[200px]">
+      <SelectItem value="standard" className="hover:bg-accent">
         <div className="flex items-center gap-2">
-          <Folder className="h-4 w-4" />
-          Standard Chats
+          <Folder className="h-4 w-4 text-muted-foreground/70" />
+          <span className="truncate">Standard Chats</span>
         </div>
       </SelectItem>
       {collections.map((collection) => (
-        <SelectItem key={collection.id} value={collection.id}>
+        <SelectItem key={collection.id} value={collection.id} className="hover:bg-accent">
           <div className="flex items-center gap-2">
-            <Folder className="h-4 w-4" />
-            {collection.name}
+            <Folder className="h-4 w-4 text-muted-foreground/70" />
+            <span className="truncate">{collection.name}</span>
           </div>
         </SelectItem>
       ))}
@@ -177,7 +178,7 @@ const ChatInterface = dynamic(() => Promise.resolve(({
   handleQuickSubmit: (text: string, newMode?: ChatMode) => Promise<void>;
 }) => (
   <>
-    <div className="sm:sticky sm:top-0 fixed bottom-[48px] sm:bottom-auto left-0 right-0 z-10 bg-background/95 backdrop-blur-md border-t sm:border-t-0 sm:border-b px-4 sm:px-2">
+    <div className="sm:sticky sm:top-0 fixed bottom-[48px] sm:bottom-auto left-0 right-0 z-10 bg-background/95 backdrop-blur-md sm:border-b px-4 sm:px-2">
       <div className="max-w-4xl mx-auto">
         <div className="py-2 sm:py-4 flex flex-col gap-2">
           <form onSubmit={handleSubmit} className="relative flex items-center gap-2 bg-input rounded-md focus-within:ring-1 focus-within:ring-ring">
@@ -209,7 +210,7 @@ const ChatInterface = dynamic(() => Promise.resolve(({
       </div>
     </div>
 
-    <main className="flex-1 overflow-y-auto p-2 pb-[112px] sm:pb-4 sm:p-4 space-y-3 sm:space-y-4 h-[calc(100dvh-104px)] sm:h-[calc(100vh-80px)]">
+    <main className="flex-1 overflow-y-auto p-2 pb-[112px] sm:pb-4 sm:p-4 space-y-3 sm:space-y-4 h-[calc(100dvh-104px)] sm:h-[calc(100vh-80px)] mt-[48px] sm:mt-0">
       {messages.length === 0 ? (
         <EmptyState mode={mode} />
       ) : (
@@ -241,20 +242,25 @@ const ChatInterface = dynamic(() => Promise.resolve(({
                             )
                           }
                           return (
-                            <div className="relative w-full my-3">
-                              <pre className="overflow-x-auto p-2 rounded-lg bg-muted-foreground/10 text-sm">
-                                <code className="block text-sm" {...props}>
-                                  {children}
-                                </code>
-                              </pre>
-                            </div>
+                            <code className="block text-sm" {...props}>
+                              {children}
+                            </code>
                           )
                         },
                         pre: ({ children }) => (
-                          <div className="relative w-full">
-                            {children}
+                          <div className="relative w-full my-3">
+                            <pre className="overflow-x-auto p-2 rounded-lg bg-muted-foreground/10 text-sm">
+                              {children}
+                            </pre>
                           </div>
                         ),
+                        p: ({ children }) => {
+                          // Check if the only child is a pre element
+                          if (React.Children.toArray(children).some(child => React.isValidElement(child) && child.type === 'pre')) {
+                            return <>{children}</>;
+                          }
+                          return <p className="mb-2">{children}</p>;
+                        },
                         ul: ({ children, ...props }) => (
                           <ul {...props} className="list-disc pl-4 my-2">
                             {children}
@@ -490,7 +496,7 @@ export default function Home() {
     }
 
     setMessages(data.messages as Message[]);
-    setMode(data.mode as ChatMode);
+    setMode(data.mode as ChatMode || 'general');
     setSelectedChatId(id);
   };
 
@@ -617,6 +623,7 @@ export default function Home() {
           .from('chat_histories')
           .update({
             messages: updatedMessages,
+            mode,
           })
           .eq('id', selectedChatId);
 
@@ -657,6 +664,33 @@ export default function Home() {
       setIsLoading(false);
     }
   }
+
+  const updateChatMode = async (newMode: ChatMode) => {
+    setMode(newMode);
+
+    if (!selectedChatId) {
+      return;
+    }
+
+    console.log('updating chat mode to', newMode);
+
+    const { error } = await supabase
+      .from('chat_histories')
+      .update({
+        mode: newMode,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', selectedChatId);
+
+    if (error) {
+      console.error('Error updating chat mode:', error);
+      toast.error('Failed to update chat mode');
+      setMode(mode);
+      return;
+    }
+
+    await loadChatHistories();
+  };
 
   return (
     <div className="flex h-[100dvh] overflow-hidden">
@@ -833,24 +867,26 @@ export default function Home() {
       >
         <div className="p-4 border-b flex items-center justify-between sticky top-0 bg-background rounded-t-lg">
           <div className="flex items-center gap-2">
-            <h2 className="font-semibold">Chat History</h2>
-            {selectedCollectionId && (
-              <Badge 
-                variant="secondary" 
-                className="rounded-sm font-normal"
-              >
-                {collections.find(c => c.id === selectedCollectionId)?.name || 'Standard Chats'}
-              </Badge>
-            )}
+            <div className="flex items-center gap-2">
+              <h2 className="font-semibold">Chat History</h2>
+              {selectedCollectionId && (
+                <Badge 
+                  variant="secondary" 
+                  className="rounded-sm font-normal"
+                >
+                  {collections.find(c => c.id === selectedCollectionId)?.name || 'Standard Chats'}
+                </Badge>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setIsSidebarOpen(false)}
+            >
+              <Minimize2 className="h-4 w-4" />
+            </Button>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setIsSidebarOpen(false)}
-          >
-            <Minimize2 className="h-4 w-4" />
-          </Button>
         </div>
         <div className="overflow-y-auto flex-1 p-2 space-y-2">
           {chatHistories.length > 0 ? (
@@ -921,7 +957,7 @@ export default function Home() {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 bg-background/80 backdrop-blur-sm border-muted-foreground/20"
+                className="h-8 bg-background/50 backdrop-blur-sm border-muted-foreground/20 p-5"
               >
                 <div className="flex items-center gap-2">
                   <div className={`w-2 h-2 rounded-full ${mode === 'software' ? 'bg-blue-500' :
@@ -942,25 +978,25 @@ export default function Home() {
               align="end"
               className="w-[200px] animate-in fade-in-0 zoom-in-95"
             >
-              <DropdownMenuItem onClick={() => setMode('general')}>
+              <DropdownMenuItem onClick={() => updateChatMode('general')}>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-gray-400"></div>
                   General Chat
                 </div>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setMode('software')}>
+              <DropdownMenuItem onClick={() => updateChatMode('software')}>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-blue-500"></div>
                   Technical Interview
                 </div>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setMode('notetaking')}>
+              <DropdownMenuItem onClick={() => updateChatMode('notetaking')}>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-green-500"></div>
                   Note Taking
                 </div>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setMode('research')}>
+              <DropdownMenuItem onClick={() => updateChatMode('research')}>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-purple-500"></div>
                   Research
@@ -970,9 +1006,9 @@ export default function Home() {
           </DropdownMenu>
         </div>
 
-        <div className="fixed bottom-0 inset-x-0 z-40 sm:hidden bg-background/95 backdrop-blur-md px-4 border-t h-[48px] flex items-center">
+        <div className="fixed bottom-0.5 inset-x-0 z-40 sm:hidden bg-background/95 backdrop-blur-md px-4 border-none h-[48px] flex items-center">
           <div className="max-w-4xl mx-auto w-full">
-            <div className="bg-background border rounded-lg p-2 flex items-center justify-between gap-2 shadow-lg h-[40px]">
+            <div className="bg-background border rounded-lg flex items-center justify-between gap-2 shadow-lg p-1 mb-1">
               <Button
                 variant="outline"
                 size="icon"
@@ -1012,7 +1048,8 @@ export default function Home() {
                     className="h-8"
                   >
                     <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${mode === 'software' ? 'bg-blue-500' :
+                      <div className={`w-2 h-2 rounded-full ${
+                        mode === 'software' ? 'bg-blue-500' :
                         mode === 'notetaking' ? 'bg-green-500' :
                         mode === 'research' ? 'bg-purple-500' :
                         'bg-gray-400'
@@ -1030,25 +1067,25 @@ export default function Home() {
                   align="end"
                   className="w-[200px] animate-in fade-in-0 zoom-in-95"
                 >
-                  <DropdownMenuItem onClick={() => setMode('general')}>
+                  <DropdownMenuItem onClick={() => updateChatMode('general')}>
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-gray-400"></div>
                       General Chat
                     </div>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setMode('software')}>
+                  <DropdownMenuItem onClick={() => updateChatMode('software')}>
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-blue-500"></div>
                       Technical Interview
                     </div>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setMode('notetaking')}>
+                  <DropdownMenuItem onClick={() => updateChatMode('notetaking')}>
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-green-500"></div>
                       Note Taking
                     </div>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setMode('research')}>
+                  <DropdownMenuItem onClick={() => updateChatMode('research')}>
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-purple-500"></div>
                       Research
