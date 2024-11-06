@@ -170,38 +170,6 @@ const ChatInterface = dynamic(() => Promise.resolve(({
   handleQuickSubmit: (text: string, newMode?: ChatMode) => Promise<void>;
 }) => (
   <>
-    <div className="sm:sticky sm:top-0 fixed bottom-[48px] sm:bottom-auto left-0 right-0 z-10 bg-background/95 backdrop-blur-md sm:border-b px-4 sm:px-2">
-      <div className="max-w-4xl mx-auto">
-        <div className="py-2 sm:py-4 flex flex-col gap-2">
-          <form onSubmit={handleSubmit} className="relative flex items-center gap-2 bg-input rounded-md focus-within:ring-1 focus-within:ring-ring">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Type a message..."
-              className="flex-1 text-base border-0 focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[44px] focus-within:ring-blue-500/20"
-              disabled={isLoading}
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-            />
-            <Button
-              type="submit"
-              size="icon"
-              disabled={isLoading}
-              className="absolute right-1 top-1 bottom-1 h-auto hover:bg-blue-500/10 bg-blue-500/20 text-blue-500/80 hover:text-blue-500"
-            >
-              <Send className="h-3 w-3 sm:h-4 sm:w-4" />
-            </Button>
-          </form>
-
-          <p className="text-base text-center text-muted-foreground hidden sm:block">
-            Powered by Llama 3.1 70B via Groq
-          </p>
-        </div>
-      </div>
-    </div>
-
     <main className="flex-1 overflow-y-auto p-2 pb-[112px] sm:pb-4 sm:p-4 space-y-3 sm:space-y-4 h-[calc(100dvh-104px)] sm:h-[calc(100vh-80px)] mt-[48px] sm:mt-0">
       {messages.length === 0 ? (
         <EmptyState mode={mode} />
@@ -318,6 +286,38 @@ const ChatInterface = dynamic(() => Promise.resolve(({
       )}
       <div ref={messagesEndRef} />
     </main>
+
+    <div className="sm:sticky sm:top-0 fixed bottom-[48px] sm:bottom-4 left-0 right-0 z-10 bg-background/95 backdrop-blur-md sm:border-t px-4 sm:px-2">
+      <div className="max-w-4xl mx-auto">
+        <div className="py-2 sm:py-4 flex flex-col gap-2">
+          <form onSubmit={handleSubmit} className="relative flex items-center gap-2 bg-input rounded-md focus-within:ring-1 focus-within:ring-ring">
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Type a message..."
+              className="flex-1 text-base border-0 focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[44px] focus-within:ring-blue-500/20"
+              disabled={isLoading}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
+            />
+            <Button
+              type="submit"
+              size="icon"
+              disabled={isLoading}
+              className="absolute right-1 top-1 bottom-1 h-auto hover:bg-blue-500/10 bg-blue-500/20 text-blue-500/80 hover:text-blue-500"
+            >
+              <Send className="h-3 w-3 sm:h-4 sm:w-4" />
+            </Button>
+          </form>
+
+          <p className="text-base text-center text-muted-foreground hidden sm:block">
+            Powered by Llama 3.1 70B via Groq
+          </p>
+        </div>
+      </div>
+    </div>
 
     <CommandDialog open={isCommandOpen} onOpenChange={setIsCommandOpen}>
       <form
@@ -711,7 +711,7 @@ export default function Home() {
 
         if (error) {
           console.error('Error creating chat:', error);
-          
+
           toast.error('Failed to create chat history');
         } else {
           setSelectedChatId(data.id);
@@ -1074,6 +1074,62 @@ export default function Home() {
 
       <div className="flex-1 flex flex-col w-full relative overflow-hidden">
         <div className="max-w-4xl mx-auto w-full h-full">
+          <div className="hidden sm:block absolute top-4 right-4 z-40">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 bg-background/50 backdrop-blur-sm border-muted-foreground/20 p-5"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${
+                      mode === 'software' ? 'bg-blue-500' :
+                      mode === 'notetaking' ? 'bg-green-500' :
+                      mode === 'research' ? 'bg-purple-500' :
+                      'bg-gray-400'
+                    }`} />
+                    <span className="text-base">
+                      {mode === 'software' && 'Technical'}
+                      {mode === 'notetaking' && 'Notes'}
+                      {mode === 'research' && 'Research'}
+                      {mode === 'general' && 'General'}
+                    </span>
+                  </div>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-[200px] animate-in fade-in-0 zoom-in-95"
+              >
+                <DropdownMenuItem onClick={() => updateChatMode('general')}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                    General Chat
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => updateChatMode('software')}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                    Technical Interview
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => updateChatMode('notetaking')}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                    Note Taking
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => updateChatMode('research')}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                    Research
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          
           <ChatInterface
             messages={messages}
             isLoading={isLoading}
@@ -1086,61 +1142,6 @@ export default function Home() {
             setIsCommandOpen={setIsCommandOpen}
             handleQuickSubmit={handleQuickSubmit}
           />
-        </div>
-
-        <div className="fixed bottom-4 right-4 z-40 hidden sm:block">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 bg-background/50 backdrop-blur-sm border-muted-foreground/20 p-5"
-              >
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${mode === 'software' ? 'bg-blue-500' :
-                    mode === 'notetaking' ? 'bg-green-500' :
-                      mode === 'research' ? 'bg-purple-500' :
-                        'bg-gray-400'
-                    }`} />
-                  <span className="text-base">
-                    {mode === 'software' && 'Technical'}
-                    {mode === 'notetaking' && 'Notes'}
-                    {mode === 'research' && 'Research'}
-                    {mode === 'general' && 'General'}
-                  </span>
-                </div>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="w-[200px] animate-in fade-in-0 zoom-in-95"
-            >
-              <DropdownMenuItem onClick={() => updateChatMode('general')}>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-                  General Chat
-                </div>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => updateChatMode('software')}>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                  Technical Interview
-                </div>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => updateChatMode('notetaking')}>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                  Note Taking
-                </div>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => updateChatMode('research')}>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                  Research
-                </div>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
 
         <div className="fixed bottom-0.5 inset-x-0 z-40 sm:hidden bg-background/95 backdrop-blur-md px-4 border-none h-[48px] flex items-center">
@@ -1186,9 +1187,9 @@ export default function Home() {
                   >
                     <div className="flex items-center gap-2">
                       <div className={`w-2 h-2 rounded-full ${mode === 'software' ? 'bg-blue-500' :
-                          mode === 'notetaking' ? 'bg-green-500' :
-                            mode === 'research' ? 'bg-purple-500' :
-                              'bg-gray-400'
+                        mode === 'notetaking' ? 'bg-green-500' :
+                          mode === 'research' ? 'bg-purple-500' :
+                            'bg-gray-400'
                         }`} />
                       <span className="text-xs">
                         {mode === 'software' ? 'Tech' :
