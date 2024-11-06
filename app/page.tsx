@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Send, Trash2, Minimize2, Menu, Command, FileEdit, Origami, FolderPlus, Folder } from "lucide-react";
+import { Send, Trash2, Minimize2, Menu, Command, FileEdit, Origami, FolderPlus, Folder, History } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import dynamic from 'next/dynamic';
@@ -49,6 +49,7 @@ import {
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge";
 import React from 'react';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 type CodeProps = {
   inline?: boolean;
@@ -97,15 +98,6 @@ const EmptyState = ({ mode }: { mode: ChatMode }) => (
         {mode === 'research' && 'high-performance research assistant'}
         {mode === 'general' && 'high-performance general assistant'}
       </p>
-    </div>
-  </div>
-);
-
-const SidebarEmptyState = () => (
-  <div className="flex flex-col items-center justify-center h-full text-center p-4 space-y-2 text-muted-foreground/60">
-    <FileEdit className="h-8 w-8" />
-    <div className="space-y-1">
-      <h3 className="font-medium text-sm">No chats yet</h3>
     </div>
   </div>
 );
@@ -394,6 +386,79 @@ const MobileTopBar = ({
         setSelectedCollectionId={setSelectedCollectionId}
         collections={collections}
       />
+    </div>
+  </div>
+);
+
+// First, add this helper function at the top level
+const getModeColor = (mode: ChatMode) => {
+  switch (mode) {
+    case 'software':
+      return 'bg-blue-500';
+    case 'notetaking':
+      return 'bg-green-500';
+    case 'research':
+      return 'bg-purple-500';
+    default:
+      return 'bg-gray-400';
+  }
+};
+
+// Add this new component near the other components at the top level
+const ChatHistoriesPopover = ({
+  chatHistories,
+  collections,
+  selectedCollectionId,
+  setSelectedCollectionId,
+  selectedChatId,
+  loadChat,
+  deleteChat,
+}: {
+  chatHistories: Database['public']['Tables']['chat_histories']['Row'][];
+  collections: Database['public']['Tables']['collections']['Row'][];
+  selectedCollectionId: string | null;
+  setSelectedCollectionId: (id: string | null) => void;
+  selectedChatId: string | null;
+  loadChat: (id: string) => void;
+  deleteChat: (id: string) => void;
+}) => (
+  <div className="w-80 flex flex-col gap-2 p-2">
+    <CollectionSelect
+      selectedCollectionId={selectedCollectionId}
+      setSelectedCollectionId={setSelectedCollectionId}
+      collections={collections}
+    />
+    <div className="max-h-[400px] overflow-y-auto space-y-1">
+      {chatHistories.map((chat) => (
+        <div
+          key={chat.id}
+          className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-blue-500/5 transition-colors text-sm ${
+            selectedChatId === chat.id ? 'bg-blue-500/10' : ''
+          }`}
+          onClick={() => loadChat(chat.id)}
+        >
+          <div className={`w-1.5 h-1.5 rounded-full ${getModeColor(chat.mode as ChatMode)}`} />
+          <div className="flex-1 truncate">
+            {chat.title}
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="opacity-0 group-hover:opacity-100 h-6 w-6 transition-opacity duration-200"
+            onClick={(e) => {
+              e.stopPropagation();
+              deleteChat(chat.id);
+            }}
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </div>
+      ))}
+      {chatHistories.length === 0 && (
+        <div className="text-sm text-muted-foreground text-center py-4">
+          No chat history yet
+        </div>
+      )}
     </div>
   </div>
 );
@@ -780,6 +845,7 @@ export default function Home() {
                         }`}
                       onClick={() => loadChat(chat.id)}
                     >
+                      <div className={`w-1.5 h-1.5 rounded-full ${getModeColor(chat.mode as ChatMode)}`} />
                       <div className="flex-1 truncate text-base">
                         {chat.title}
                       </div>
@@ -798,19 +864,14 @@ export default function Home() {
                   ))}
                 </div>
               ) : (
-                <div
-                  className={`
-                    opacity-0 transition-opacity duration-200 ease-in-out
-                    ${isSidebarOpen ? 'opacity-100 delay-500' : 'opacity-0 invisible'}
-                  `}
-                >
-                  <SidebarEmptyState />
+                <div className="text-sm text-muted-foreground text-center py-4">
+                  No chat history yet
                 </div>
               )}
             </div>
           </div>
         ) : (
-          <div className="w-10 flex flex-col items-center py-2 gap-4 opacity-100 transition-opacity duration-300 ease-in-out">
+          <div className="w-10 flex flex-col items-center py-2 gap-2 opacity-100 transition-opacity duration-300 ease-in-out">
             <TooltipProvider delayDuration={0}>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -848,6 +909,83 @@ export default function Home() {
                 </TooltipTrigger>
                 <TooltipContent side="right" className="flex items-center">
                   New Chat
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Dialog open={isNewCollectionDialogOpen} onOpenChange={setIsNewCollectionDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                      >
+                        <FolderPlus className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Create New Collection</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="name">Collection Name</Label>
+                          <Input
+                            id="name"
+                            value={newCollectionName}
+                            onChange={(e) => setNewCollectionName(e.target.value)}
+                            placeholder="Enter collection name..."
+                          />
+                        </div>
+                        <Button onClick={createCollection} className="w-full">
+                          Create Collection
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="flex items-center">
+                  New Collection
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                      >
+                        <History className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent 
+                      side="right" 
+                      align="start" 
+                      alignOffset={-8}
+                      className="p-0 w-auto ml-2 relative"
+                      sideOffset={16}
+                    >
+                      <div className="absolute left-[-6px] top-[10px] w-3 h-3 rotate-45 bg-popover border-l border-t border-border" />
+                      <div className="relative">
+                        <ChatHistoriesPopover
+                          chatHistories={chatHistories}
+                          collections={collections}
+                          selectedCollectionId={selectedCollectionId}
+                          setSelectedCollectionId={setSelectedCollectionId}
+                          selectedChatId={selectedChatId}
+                          loadChat={loadChat}
+                          deleteChat={deleteChat}
+                        />
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="flex items-center">
+                  View Chat History
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -902,6 +1040,7 @@ export default function Home() {
                     setIsSidebarOpen(false);
                   }}
                 >
+                  <div className={`w-1.5 h-1.5 rounded-full ${getModeColor(chat.mode as ChatMode)}`} />
                   <div className="flex-1 truncate text-base">
                     {chat.title}
                   </div>
