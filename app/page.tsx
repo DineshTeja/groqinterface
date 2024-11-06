@@ -102,11 +102,11 @@ const EmptyState = ({ mode }: { mode: ChatMode }) => (
   </div>
 );
 
-const CollectionSelect = ({ 
-  selectedCollectionId, 
-  setSelectedCollectionId, 
-  collections 
-}: { 
+const CollectionSelect = ({
+  selectedCollectionId,
+  setSelectedCollectionId,
+  collections
+}: {
   selectedCollectionId: string | null;
   setSelectedCollectionId: (id: string | null) => void;
   collections: Database['public']['Tables']['collections']['Row'][];
@@ -120,8 +120,8 @@ const CollectionSelect = ({
         <div className="flex items-center gap-2">
           <Folder className="h-4 w-4 text-muted-foreground/70" />
           <span className="truncate">
-            {selectedCollectionId 
-              ? collections.find(c => c.id === selectedCollectionId)?.name 
+            {selectedCollectionId
+              ? collections.find(c => c.id === selectedCollectionId)?.name
               : 'Standard Chats'}
           </span>
         </div>
@@ -432,9 +432,8 @@ const ChatHistoriesPopover = ({
       {chatHistories.map((chat) => (
         <div
           key={chat.id}
-          className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-blue-500/5 transition-colors text-sm ${
-            selectedChatId === chat.id ? 'bg-blue-500/10' : ''
-          }`}
+          className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-blue-500/5 transition-colors text-sm ${selectedChatId === chat.id ? 'bg-blue-500/10' : ''
+            }`}
           onClick={() => loadChat(chat.id)}
         >
           <div className={`w-1.5 h-1.5 rounded-full ${getModeColor(chat.mode as ChatMode)}`} />
@@ -712,6 +711,7 @@ export default function Home() {
 
         if (error) {
           console.error('Error creating chat:', error);
+          
           toast.error('Failed to create chat history');
         } else {
           setSelectedChatId(data.id);
@@ -961,9 +961,9 @@ export default function Home() {
                         <History className="h-4 w-4 text-muted-foreground" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent 
-                      side="right" 
-                      align="start" 
+                    <PopoverContent
+                      side="right"
+                      align="start"
                       alignOffset={-8}
                       className="p-0 w-auto ml-2 relative"
                       sideOffset={16}
@@ -1007,8 +1007,8 @@ export default function Home() {
             <div className="flex items-center gap-2">
               <h2 className="font-semibold">Chat History</h2>
               {selectedCollectionId && (
-                <Badge 
-                  variant="secondary" 
+                <Badge
+                  variant="secondary"
                   className="rounded-sm font-normal"
                 >
                   {collections.find(c => c.id === selectedCollectionId)?.name || 'Standard Chats'}
@@ -1031,9 +1031,8 @@ export default function Home() {
               {chatHistories.map((chat) => (
                 <div
                   key={chat.id}
-                  className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-blue-500/5 transition-colors ${
-                    selectedChatId === chat.id ? 'bg-blue-500/10' : ''
-                  }`}
+                  className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-blue-500/5 transition-colors ${selectedChatId === chat.id ? 'bg-blue-500/10' : ''
+                    }`}
                   onClick={() => {
                     loadChat(chat.id);
                     setIsSidebarOpen(false);
@@ -1099,9 +1098,9 @@ export default function Home() {
               >
                 <div className="flex items-center gap-2">
                   <div className={`w-2 h-2 rounded-full ${mode === 'software' ? 'bg-blue-500' :
-                      mode === 'notetaking' ? 'bg-green-500' :
-                        mode === 'research' ? 'bg-purple-500' :
-                          'bg-gray-400'
+                    mode === 'notetaking' ? 'bg-green-500' :
+                      mode === 'research' ? 'bg-purple-500' :
+                        'bg-gray-400'
                     }`} />
                   <span className="text-base">
                     {mode === 'software' && 'Technical'}
@@ -1186,17 +1185,16 @@ export default function Home() {
                     className="h-8"
                   >
                     <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${
-                        mode === 'software' ? 'bg-blue-500' :
-                        mode === 'notetaking' ? 'bg-green-500' :
-                        mode === 'research' ? 'bg-purple-500' :
-                        'bg-gray-400'
-                      }`} />
+                      <div className={`w-2 h-2 rounded-full ${mode === 'software' ? 'bg-blue-500' :
+                          mode === 'notetaking' ? 'bg-green-500' :
+                            mode === 'research' ? 'bg-purple-500' :
+                              'bg-gray-400'
+                        }`} />
                       <span className="text-xs">
                         {mode === 'software' ? 'Tech' :
-                         mode === 'notetaking' ? 'Notes' :
-                         mode === 'research' ? 'Research' :
-                         'General'}
+                          mode === 'notetaking' ? 'Notes' :
+                            mode === 'research' ? 'Research' :
+                              'General'}
                       </span>
                     </div>
                   </Button>
