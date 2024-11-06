@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Send, Trash2, Minimize2, Menu, Command, FileEdit, Origami } from "lucide-react";
+import { Send, Trash2, Minimize2, Menu, Command, FileEdit, Origami, FolderPlus, Folder } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import dynamic from 'next/dynamic';
@@ -32,6 +32,28 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge";
+
+type CodeProps = {
+  inline?: boolean;
+  className?: string;
+  children?: React.ReactNode;
+}
 
 type Message = {
   role: 'user' | 'assistant';
@@ -87,6 +109,50 @@ const SidebarEmptyState = () => (
   </div>
 );
 
+const CollectionSelect = ({ 
+  selectedCollectionId, 
+  setSelectedCollectionId, 
+  collections 
+}: { 
+  selectedCollectionId: string | null;
+  setSelectedCollectionId: (id: string | null) => void;
+  collections: Database['public']['Tables']['collections']['Row'][];
+}) => (
+  <Select
+    value={selectedCollectionId || "standard"}
+    onValueChange={(value) => setSelectedCollectionId(value === "standard" ? null : value)}
+  >
+    <SelectTrigger className="w-full h-8">
+      <SelectValue placeholder="Select Collection">
+        <div className="flex items-center gap-2">
+          <Folder className="h-4 w-4" />
+          <span>
+            {selectedCollectionId 
+              ? collections.find(c => c.id === selectedCollectionId)?.name 
+              : 'Standard Chats'}
+          </span>
+        </div>
+      </SelectValue>
+    </SelectTrigger>
+    <SelectContent>
+      <SelectItem value="standard">
+        <div className="flex items-center gap-2">
+          <Folder className="h-4 w-4" />
+          Standard Chats
+        </div>
+      </SelectItem>
+      {collections.map((collection) => (
+        <SelectItem key={collection.id} value={collection.id}>
+          <div className="flex items-center gap-2">
+            <Folder className="h-4 w-4" />
+            {collection.name}
+          </div>
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+);
+
 const ChatInterface = dynamic(() => Promise.resolve(({
   messages,
   isLoading,
@@ -126,16 +192,16 @@ const ChatInterface = dynamic(() => Promise.resolve(({
               autoCapitalize="off"
               spellCheck="false"
             />
-            <Button 
-              type="submit" 
-              size="icon" 
+            <Button
+              type="submit"
+              size="icon"
               disabled={isLoading}
               className="absolute right-1 top-1 bottom-1 h-auto hover:bg-blue-500/10 bg-blue-500/20 text-blue-500/80 hover:text-blue-500"
             >
               <Send className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
           </form>
-          
+
           <p className="text-base text-center text-muted-foreground hidden sm:block">
             Powered by Llama 3.1 70B via Groq
           </p>
@@ -166,10 +232,28 @@ const ChatInterface = dynamic(() => Promise.resolve(({
                             {children}
                           </a>
                         ),
-                        code: ({ children, ...props }) => (
-                          <code {...props} className="bg-muted-foreground/20 rounded px-1 py-0.5">
+                        code: ({ inline, children, ...props }: CodeProps) => {
+                          if (inline) {
+                            return (
+                              <code className="bg-muted-foreground/20 rounded px-1 py-0.5" {...props}>
+                                {children}
+                              </code>
+                            )
+                          }
+                          return (
+                            <div className="relative w-full my-3">
+                              <pre className="overflow-x-auto p-2 rounded-lg bg-muted-foreground/10 text-sm">
+                                <code className="block text-sm" {...props}>
+                                  {children}
+                                </code>
+                              </pre>
+                            </div>
+                          )
+                        },
+                        pre: ({ children }) => (
+                          <div className="relative w-full">
                             {children}
-                          </code>
+                          </div>
                         ),
                         ul: ({ children, ...props }) => (
                           <ul {...props} className="list-disc pl-4 my-2">
@@ -288,6 +372,26 @@ const ChatInterface = dynamic(() => Promise.resolve(({
   </>
 )), { ssr: false });
 
+const MobileTopBar = ({
+  selectedCollectionId,
+  setSelectedCollectionId,
+  collections
+}: {
+  selectedCollectionId: string | null;
+  setSelectedCollectionId: (id: string | null) => void;
+  collections: Database['public']['Tables']['collections']['Row'][];
+}) => (
+  <div className="fixed top-0 inset-x-0 z-50 sm:hidden bg-background/95 backdrop-blur-md px-4 border-b h-[48px] flex items-center">
+    <div className="max-w-4xl mx-auto w-full">
+      <CollectionSelect
+        selectedCollectionId={selectedCollectionId}
+        setSelectedCollectionId={setSelectedCollectionId}
+        collections={collections}
+      />
+    </div>
+  </div>
+);
+
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -299,6 +403,10 @@ export default function Home() {
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [collections, setCollections] = useState<Database['public']['Tables']['collections']['Row'][]>([]);
+  const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
+  const [isNewCollectionDialogOpen, setIsNewCollectionDialogOpen] = useState(false);
+  const [newCollectionName, setNewCollectionName] = useState('');
 
   useHotkeys('meta+k, ctrl+k', (e) => {
     e.preventDefault();
@@ -326,10 +434,18 @@ export default function Home() {
   };
 
   const loadChatHistories = async () => {
-    const { data, error } = await supabase
+    let query = supabase
       .from('chat_histories')
       .select('*')
       .order('updated_at', { ascending: false });
+
+    if (selectedCollectionId) {
+      query = query.eq('collection_id', selectedCollectionId);
+    } else {
+      query = query.is('collection_id', null);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('Error loading chat histories:', error);
@@ -378,8 +494,48 @@ export default function Home() {
     setSelectedChatId(id);
   };
 
+  const loadCollections = async () => {
+    const { data, error } = await supabase
+      .from('collections')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error loading collections:', error);
+      toast.error('Failed to load collections');
+      return;
+    }
+
+    setCollections(data);
+  };
+
+  const createCollection = async () => {
+    if (!newCollectionName.trim()) {
+      toast.error('Please enter a collection name');
+      return;
+    }
+
+    const { error } = await supabase
+      .from('collections')
+      .insert([{ name: newCollectionName.trim() }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating collection:', error);
+      toast.error('Failed to create collection');
+      return;
+    }
+
+    setNewCollectionName('');
+    setIsNewCollectionDialogOpen(false);
+    loadCollections();
+    toast.success('Collection created successfully');
+  };
+
   useEffect(() => {
     loadChatHistories();
+    loadCollections();
   }, []);
 
   useEffect(() => {
@@ -406,6 +562,10 @@ export default function Home() {
       setIsSidebarOpen(false);
     }
   }, [isMobile]);
+
+  useEffect(() => {
+    loadChatHistories();
+  }, [selectedCollectionId]);
 
   async function handleSubmit(e: React.FormEvent, submittedText?: string) {
     e.preventDefault();
@@ -451,7 +611,7 @@ export default function Home() {
       }
 
       const updatedMessages = [...messages, newMessage, { role: 'assistant', content: fullResponse }];
-      
+
       if (selectedChatId) {
         const { error } = await supabase
           .from('chat_histories')
@@ -473,6 +633,7 @@ export default function Home() {
               title,
               messages: updatedMessages,
               mode,
+              collection_id: selectedCollectionId,
             },
           ])
           .select()
@@ -499,46 +660,90 @@ export default function Home() {
 
   return (
     <div className="flex h-[100dvh] overflow-hidden">
-      <div 
-        className={`hidden sm:block ${
-          isSidebarOpen ? 'sm:w-64' : 'sm:w-10'
-        } border-r bg-muted/50 transition-all duration-300 ease-in-out overflow-hidden sticky top-0 h-screen`}
+      <MobileTopBar
+        selectedCollectionId={selectedCollectionId}
+        setSelectedCollectionId={setSelectedCollectionId}
+        collections={collections}
+      />
+      <div
+        className={`hidden sm:block ${isSidebarOpen ? 'sm:w-64' : 'sm:w-10'
+          } border-r bg-muted/50 transition-all duration-300 ease-in-out overflow-hidden sticky top-0 h-screen`}
       >
         {isSidebarOpen ? (
           <div className="flex flex-col h-full opacity-100 transition-opacity duration-300 ease-in-out">
-            <div className="p-4 border-b bg-background">
-              <div className="flex items-center gap-2 transition-transform duration-300 ease-in-out">
+            <div className="p-2 border-b bg-background">
+              <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
-                  className="flex-1 text-xs sm:text-sm whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out hover:bg-blue-500/10 hover:text-blue-500 hover:border-blue-500/20"
+                  size="sm"
+                  className="flex-1 h-8 text-xs hover:bg-blue-500/10 hover:text-blue-500 hover:border-blue-500/20"
                   onClick={() => {
                     setSelectedChatId(null);
+                    setSelectedCollectionId(null);
                     setMessages([]);
                     setMode('general');
                   }}
                 >
-                  <FileEdit className="mr-2 h-4 w-4 flex-shrink-0" />
-                  <span className="transition-opacity duration-300 ease-in-out">New Chat</span>
+                  <FileEdit className="mr-1 h-3 w-3" />
+                  New Chat
                 </Button>
+                <Dialog open={isNewCollectionDialogOpen} onOpenChange={setIsNewCollectionDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs hover:bg-blue-500/10 hover:text-blue-500 hover:border-blue-500/20"
+                    >
+                      <FolderPlus className="h-3 w-3" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Create New Collection</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Collection Name</Label>
+                        <Input
+                          id="name"
+                          value={newCollectionName}
+                          onChange={(e) => setNewCollectionName(e.target.value)}
+                          placeholder="Enter collection name..."
+                        />
+                      </div>
+                      <Button onClick={createCollection} className="w-full">
+                        Create Collection
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 flex-shrink-0 transition-all duration-300 ease-in-out"
+                  className="h-8 w-8 flex-shrink-0"
                   onClick={() => setIsSidebarOpen(false)}
                 >
                   <Minimize2 className="h-4 w-4" />
                 </Button>
               </div>
             </div>
+
             <div className="flex-1 overflow-y-auto p-2 space-y-2">
+              <div className="space-y-1">
+                <CollectionSelect
+                  selectedCollectionId={selectedCollectionId}
+                  setSelectedCollectionId={setSelectedCollectionId}
+                  collections={collections}
+                />
+              </div>
+
               {chatHistories.length > 0 ? (
                 <div className="opacity-100 transition-opacity duration-300 ease-in-out delay-150">
                   {chatHistories.map((chat) => (
                     <div
                       key={chat.id}
-                      className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-blue-500/5 transition-colors ${
-                        selectedChatId === chat.id ? 'bg-blue-500/10' : ''
-                      }`}
+                      className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-blue-500/5 transition-colors ${selectedChatId === chat.id ? 'bg-blue-500/10' : ''
+                        }`}
                       onClick={() => loadChat(chat.id)}
                     >
                       <div className="flex-1 truncate text-base">
@@ -559,7 +764,7 @@ export default function Home() {
                   ))}
                 </div>
               ) : (
-                <div 
+                <div
                   className={`
                     opacity-0 transition-opacity duration-200 ease-in-out
                     ${isSidebarOpen ? 'opacity-100 delay-500' : 'opacity-0 invisible'}
@@ -616,7 +821,7 @@ export default function Home() {
         )}
       </div>
 
-      <div 
+      <div
         className={`
           fixed inset-x-0 bottom-0 z-50
           transform transition-transform duration-300 ease-in-out
@@ -627,7 +832,17 @@ export default function Home() {
         `}
       >
         <div className="p-4 border-b flex items-center justify-between sticky top-0 bg-background rounded-t-lg">
-          <h2 className="font-semibold">Chat History</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="font-semibold">Chat History</h2>
+            {selectedCollectionId && (
+              <Badge 
+                variant="secondary" 
+                className="rounded-sm font-normal"
+              >
+                {collections.find(c => c.id === selectedCollectionId)?.name || 'Standard Chats'}
+              </Badge>
+            )}
+          </div>
           <Button
             variant="ghost"
             size="icon"
@@ -638,34 +853,37 @@ export default function Home() {
           </Button>
         </div>
         <div className="overflow-y-auto flex-1 p-2 space-y-2">
-          {chatHistories.map((chat) => (
-            <div
-              key={chat.id}
-              className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-blue-500/5 transition-colors ${
-                selectedChatId === chat.id ? 'bg-blue-500/10' : ''
-              }`}
-              onClick={() => {
-                loadChat(chat.id);
-                setIsSidebarOpen(false);
-              }}
-            >
-              <div className="flex-1 truncate text-base">
-                {chat.title}
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="opacity-0 group-hover:opacity-100 h-6 w-6"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteChat(chat.id);
-                }}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+          {chatHistories.length > 0 ? (
+            <div className="opacity-100 transition-opacity duration-300 ease-in-out delay-150">
+              {chatHistories.map((chat) => (
+                <div
+                  key={chat.id}
+                  className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-blue-500/5 transition-colors ${
+                    selectedChatId === chat.id ? 'bg-blue-500/10' : ''
+                  }`}
+                  onClick={() => {
+                    loadChat(chat.id);
+                    setIsSidebarOpen(false);
+                  }}
+                >
+                  <div className="flex-1 truncate text-base">
+                    {chat.title}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="opacity-0 group-hover:opacity-100 h-6 w-6 transition-opacity duration-200"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteChat(chat.id);
+                    }}
+                  >
+                    <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                  </Button>
+                </div>
+              ))}
             </div>
-          ))}
-          {chatHistories.length === 0 && (
+          ) : (
             <div className="text-sm text-muted-foreground text-center py-4">
               No chat history yet
             </div>
@@ -675,7 +893,7 @@ export default function Home() {
       </div>
 
       {isSidebarOpen && isMobile && (
-        <div 
+        <div
           className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 sm:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
@@ -706,12 +924,11 @@ export default function Home() {
                 className="h-8 bg-background/80 backdrop-blur-sm border-muted-foreground/20"
               >
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${
-                    mode === 'software' ? 'bg-blue-500' :
-                    mode === 'notetaking' ? 'bg-green-500' :
-                    mode === 'research' ? 'bg-purple-500' :
-                    'bg-gray-400'
-                  }`} />
+                  <div className={`w-2 h-2 rounded-full ${mode === 'software' ? 'bg-blue-500' :
+                      mode === 'notetaking' ? 'bg-green-500' :
+                        mode === 'research' ? 'bg-purple-500' :
+                          'bg-gray-400'
+                    }`} />
                   <span className="text-base">
                     {mode === 'software' && 'Technical'}
                     {mode === 'notetaking' && 'Notes'}
@@ -778,6 +995,15 @@ export default function Home() {
                 New Chat
               </Button>
 
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setIsNewCollectionDialogOpen(true)}
+              >
+                <FolderPlus className="h-4 w-4" />
+              </Button>
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -786,17 +1012,16 @@ export default function Home() {
                     className="h-8"
                   >
                     <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${
-                        mode === 'software' ? 'bg-blue-500' :
+                      <div className={`w-2 h-2 rounded-full ${mode === 'software' ? 'bg-blue-500' :
                         mode === 'notetaking' ? 'bg-green-500' :
                         mode === 'research' ? 'bg-purple-500' :
                         'bg-gray-400'
                       }`} />
                       <span className="text-xs">
-                        {mode === 'software' && 'Technical'}
-                        {mode === 'notetaking' && 'Notes'}
-                        {mode === 'research' && 'Research'}
-                        {mode === 'general' && 'General'}
+                        {mode === 'software' ? 'Tech' :
+                         mode === 'notetaking' ? 'Notes' :
+                         mode === 'research' ? 'Research' :
+                         'General'}
                       </span>
                     </div>
                   </Button>
