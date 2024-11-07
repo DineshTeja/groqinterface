@@ -202,7 +202,7 @@ const ChatInterface = dynamic(() => Promise.resolve(({
                             )
                           }
                           return (
-                            <code className="block text-sm" {...props}>
+                            <code className="inline-block text-sm" {...props}>
                               {children}
                             </code>
                           )
@@ -1082,12 +1082,11 @@ export default function Home() {
                   className="h-8 bg-background/50 backdrop-blur-sm border-muted-foreground/20 p-5"
                 >
                   <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${
-                      mode === 'software' ? 'bg-blue-500' :
-                      mode === 'notetaking' ? 'bg-green-500' :
-                      mode === 'research' ? 'bg-purple-500' :
-                      'bg-gray-400'
-                    }`} />
+                    <div className={`w-2 h-2 rounded-full ${mode === 'software' ? 'bg-blue-500' :
+                        mode === 'notetaking' ? 'bg-green-500' :
+                          mode === 'research' ? 'bg-purple-500' :
+                            'bg-gray-400'
+                      }`} />
                     <span className="text-base">
                       {mode === 'software' && 'Technical'}
                       {mode === 'notetaking' && 'Notes'}
@@ -1128,7 +1127,7 @@ export default function Home() {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          
+
           <ChatInterface
             messages={messages}
             isLoading={isLoading}
