@@ -170,7 +170,7 @@ const ChatInterface = dynamic(() => Promise.resolve(({
   handleQuickSubmit: (text: string, newMode?: ChatMode) => Promise<void>;
 }) => (
   <>
-    <main className="flex-1 overflow-y-auto p-2 pb-[112px] sm:pb-4 sm:p-4 space-y-3 sm:space-y-4 h-[calc(100dvh-104px)] sm:h-[calc(100vh-80px)] mt-[48px] sm:mt-0">
+    <main className="flex-1 overflow-y-auto p-2 pb-[112px] sm:pb-[80px] sm:p-4 space-y-3 sm:space-y-4 h-[calc(100dvh-104px)] sm:h-[calc(100vh-80px)] mt-[48px] sm:mt-0">
       {messages.length === 0 ? (
         <EmptyState mode={mode} />
       ) : (
@@ -287,7 +287,7 @@ const ChatInterface = dynamic(() => Promise.resolve(({
       <div ref={messagesEndRef} />
     </main>
 
-    <div className="sm:sticky sm:top-0 fixed bottom-[48px] sm:bottom-4 left-0 right-0 z-10 bg-background/95 backdrop-blur-md sm:border-t px-4 sm:px-2">
+    <div className="sm:sticky sm:top-0 fixed bottom-[48px] sm:bottom-4 left-0 right-0 z-10 bg-background/95 backdrop-blur-md sm:border-t px-4 sm:px-2 sm:mt-1">
       <div className="max-w-4xl mx-auto">
         <div className="py-2 sm:py-4 flex flex-col gap-2">
           <form onSubmit={handleSubmit} className="relative flex items-center gap-2 bg-input rounded-md focus-within:ring-1 focus-within:ring-ring">
@@ -1073,7 +1073,7 @@ export default function Home() {
 
       <div className="flex-1 flex flex-col w-full relative overflow-hidden">
         <div className="max-w-4xl mx-auto w-full h-full">
-          <div className="hidden sm:block absolute bottom-4 right-4 z-40">
+          <div className="hidden sm:block absolute top-4 right-4 z-40">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
