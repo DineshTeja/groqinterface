@@ -656,16 +656,24 @@ export default function Home() {
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to fetch');
+      if (!response.ok) {
+        toast.error(`HTTP error! status: ${response.status}`);
+        return;
+      }
+
+      if (!response.body) {
+        toast.error('Response body is null');
+        return;
+      }
 
       setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
 
-      const reader = response.body?.getReader();
+      const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let fullResponse = '';
 
       while (true) {
-        const { done, value } = await reader!.read();
+        const { done, value } = await reader.read();
         if (done) break;
 
         const chunk = decoder.decode(value);
@@ -682,21 +690,42 @@ export default function Home() {
       const updatedMessages = [...messages, newMessage, { role: 'assistant', content: fullResponse }];
 
       if (selectedChatId) {
-        const { error } = await supabase
+        const { error: updateError } = await supabase
           .from('chat_histories')
           .update({
             messages: updatedMessages,
             mode,
+            updated_at: new Date().toISOString(),
           })
           .eq('id', selectedChatId);
 
-        if (error) {
-          console.error('Error updating chat:', error);
+        if (updateError) {
+          console.error('Error updating chat:', updateError);
           toast.error('Failed to update chat history');
+          return;
         }
+
+        // Wait a brief moment for the database to update
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Reload the specific chat instead of all chats
+        const { data: refreshedChat, error: refreshError } = await supabase
+          .from('chat_histories')
+          .select('*')
+          .eq('id', selectedChatId)
+          .single();
+
+        if (refreshError) {
+          console.error('Error refreshing chat:', refreshError);
+          toast.error('Failed to refresh chat');
+          return;
+        }
+
+        setMessages(refreshedChat.messages as Message[]);
+        await loadChatHistories(); // Refresh the chat list
       } else {
         const title = newMessage.content.slice(0, 50) + (newMessage.content.length > 50 ? '...' : '');
-        const { data, error } = await supabase
+        const { data, error: insertError } = await supabase
           .from('chat_histories')
           .insert([
             {
@@ -709,21 +738,21 @@ export default function Home() {
           .select()
           .single();
 
-        if (error) {
-          console.error('Error creating chat:', error);
-
+        if (insertError) {
+          console.error('Error creating chat:', insertError);
           toast.error('Failed to create chat history');
         } else {
           setSelectedChatId(data.id);
-          loadChatHistories();
+          await loadChatHistories();
         }
       }
     } catch (error) {
       console.error('Error:', error);
-      setMessages(prev => [...prev, {
+      setMessages(prev => [...prev.slice(0, -1), {
         role: 'assistant',
-        content: 'An error occurred while processing your request.'
+        content: 'Sorry, there was an error processing your request. Please try again.'
       }]);
+      toast.error('Failed to send message. Please try again.');
     } finally {
       setIsLoading(false);
     }

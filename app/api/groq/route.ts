@@ -35,10 +35,14 @@ export async function POST(request: Request) {
       content: SYSTEM_PROMPTS[mode]
     };
 
-    const allMessages: GroqMessageParam[] = [systemMessage, ...messages];
+    // Get the last 4 messages from the chat history
+    const recentMessages = messages.slice(-4);
+
+    // Combine system message with recent messages
+    const contextMessages: GroqMessageParam[] = [systemMessage, ...recentMessages];
 
     const completion = await groq.chat.completions.create({
-      messages: allMessages,
+      messages: contextMessages,
       model: "llama-3.1-70b-versatile",
       temperature: 0.7,
       max_tokens: 1024,
