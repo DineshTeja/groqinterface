@@ -777,7 +777,6 @@ export default function Home() {
                   className="flex-1 h-8 text-xs hover:bg-blue-500/10 hover:text-blue-500 hover:border-blue-500/20"
                   onClick={() => {
                     setSelectedChatId(null);
-                    setSelectedCollectionId(null);
                     setMessages([]);
                     setMode('general');
                   }}
