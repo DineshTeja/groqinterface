@@ -1074,7 +1074,7 @@ export default function Home() {
 
       <div className="flex-1 flex flex-col w-full relative overflow-hidden">
         <div className="max-w-4xl mx-auto w-full h-full">
-          <div className="hidden sm:block absolute top-4 right-4 z-40">
+          <div className="hidden sm:block absolute bottom-4 right-4 z-40">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
