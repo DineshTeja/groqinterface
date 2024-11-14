@@ -3,6 +3,8 @@ import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from '@/lib/auth-context';
+import AuthLayout from '@/components/auth-layout';
 
 export const metadata: Metadata = {
   title: "Groq Bot",
@@ -23,7 +25,11 @@ export default function RootLayout({
         />
       </head>
       <body className={`${GeistSans.className} dark:bg-background touch-none text-base`}>
-        {children}
+        <AuthProvider>
+          <AuthLayout>
+            {children}
+          </AuthLayout>
+        </AuthProvider>
         <Toaster 
           theme="dark" 
           position="top-center"

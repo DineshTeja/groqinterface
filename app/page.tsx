@@ -50,6 +50,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import React from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useAuth } from '@/lib/auth-context';
+import { useRouter } from 'next/navigation';
 
 type CodeProps = {
   inline?: boolean;
@@ -477,6 +479,15 @@ export default function Home() {
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
   const [isNewCollectionDialogOpen, setIsNewCollectionDialogOpen] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState('');
+  const { user } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    // If no user is authenticated, redirect to auth page
+    if (!user) {
+      router.replace('/auth');
+    }
+  }, [user, router]);
 
   useHotkeys('meta+k, ctrl+k', (e) => {
     e.preventDefault();
@@ -586,7 +597,10 @@ export default function Home() {
 
     const { error } = await supabase
       .from('collections')
-      .insert([{ name: newCollectionName.trim() }])
+      .insert([{ 
+        name: newCollectionName.trim(),
+        user: user?.id 
+      }])
       .select()
       .single();
 
