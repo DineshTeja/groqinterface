@@ -59,7 +59,8 @@ CREATE TABLE IF NOT EXISTS "public"."chat_histories" (
     "mode" "text" NOT NULL,
     "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
     "updated_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
-    "collection_id" "uuid"
+    "collection_id" "uuid",
+    "user" "uuid"
 );
 
 ALTER TABLE "public"."chat_histories" OWNER TO "postgres";
@@ -68,7 +69,8 @@ CREATE TABLE IF NOT EXISTS "public"."collections" (
     "id" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
     "name" "text" NOT NULL,
     "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL
+    "updated_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
+    "user" "uuid"
 );
 
 ALTER TABLE "public"."collections" OWNER TO "postgres";
@@ -90,6 +92,12 @@ CREATE OR REPLACE TRIGGER "update_chat_histories_updated_at" BEFORE UPDATE ON "p
 ALTER TABLE ONLY "public"."chat_histories"
     ADD CONSTRAINT "chat_histories_collection_id_fkey" FOREIGN KEY ("collection_id") REFERENCES "public"."collections"("id");
 
+ALTER TABLE ONLY "public"."chat_histories"
+    ADD CONSTRAINT "chat_histories_user_fkey" FOREIGN KEY ("user") REFERENCES "auth"."users"("id");
+
+ALTER TABLE ONLY "public"."collections"
+    ADD CONSTRAINT "collections_user_fkey" FOREIGN KEY ("user") REFERENCES "auth"."users"("id");
+
 CREATE POLICY "Allow delete for all users" ON "public"."chat_histories" FOR DELETE USING (true);
 
 CREATE POLICY "Allow insert for all users" ON "public"."chat_histories" FOR INSERT WITH CHECK (true);
@@ -100,7 +108,25 @@ CREATE POLICY "Allow update for all users" ON "public"."chat_histories" FOR UPDA
 
 CREATE POLICY "Enable all operations for all users" ON "public"."chat_histories" USING (true) WITH CHECK (true);
 
+CREATE POLICY "Users can create their own chat histories" ON "public"."chat_histories" FOR INSERT WITH CHECK ((("auth"."uid"())::"text" = USER));
+
+CREATE POLICY "Users can create their own collections" ON "public"."collections" FOR INSERT WITH CHECK (("auth"."uid"() = (USER)::"uuid"));
+
+CREATE POLICY "Users can delete their own chat histories" ON "public"."chat_histories" FOR DELETE USING ((("auth"."uid"())::"text" = USER));
+
+CREATE POLICY "Users can delete their own collections" ON "public"."collections" FOR DELETE USING (("auth"."uid"() = (USER)::"uuid"));
+
+CREATE POLICY "Users can update their own chat histories" ON "public"."chat_histories" FOR UPDATE USING ((("auth"."uid"())::"text" = USER));
+
+CREATE POLICY "Users can update their own collections" ON "public"."collections" FOR UPDATE USING (("auth"."uid"() = (USER)::"uuid"));
+
+CREATE POLICY "Users can view their own chat histories" ON "public"."chat_histories" FOR SELECT USING ((("auth"."uid"())::"text" = USER));
+
+CREATE POLICY "Users can view their own collections" ON "public"."collections" FOR SELECT USING (("auth"."uid"() = (USER)::"uuid"));
+
 ALTER TABLE "public"."chat_histories" ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE "public"."collections" ENABLE ROW LEVEL SECURITY;
 
 ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
 

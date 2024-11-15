@@ -481,6 +481,15 @@ export default function Home() {
   const [newCollectionName, setNewCollectionName] = useState('');
   const { user } = useAuth();
   const router = useRouter();
+  
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log('user', user);
+    };
+  
+    fetchUser();
+  }, []);
 
   useEffect(() => {
     // If no user is authenticated, redirect to auth page
@@ -580,6 +589,8 @@ export default function Home() {
       .select('*')
       .order('created_at', { ascending: false });
 
+    console.log('collections', data);
+
     if (error) {
       console.error('Error loading collections:', error);
       toast.error('Failed to load collections');
@@ -597,9 +608,9 @@ export default function Home() {
 
     const { error } = await supabase
       .from('collections')
-      .insert([{ 
+      .insert([{
         name: newCollectionName.trim(),
-        user: user?.id 
+        user: user?.id
       }])
       .select()
       .single();
@@ -721,7 +732,7 @@ export default function Home() {
 
         // Wait a brief moment for the database to update
         await new Promise(resolve => setTimeout(resolve, 100));
-        
+
         // Reload the specific chat instead of all chats
         const { data: refreshedChat, error: refreshError } = await supabase
           .from('chat_histories')
@@ -1126,9 +1137,9 @@ export default function Home() {
                 >
                   <div className="flex items-center gap-2">
                     <div className={`w-2 h-2 rounded-full ${mode === 'software' ? 'bg-blue-500' :
-                        mode === 'notetaking' ? 'bg-green-500' :
-                          mode === 'research' ? 'bg-purple-500' :
-                            'bg-gray-400'
+                      mode === 'notetaking' ? 'bg-green-500' :
+                        mode === 'research' ? 'bg-purple-500' :
+                          'bg-gray-400'
                       }`} />
                     <span className="text-base">
                       {mode === 'software' && 'Technical'}
