@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Send, Trash2, Minimize2, Menu, Command, FileEdit, Origami, FolderPlus, Folder, History } from "lucide-react";
+import { Send, Trash2, Minimize2, Menu, Command, FileEdit, Origami, FolderPlus, Folder, History, LogOut } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import dynamic from 'next/dynamic';
@@ -50,6 +50,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import React from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useAuth } from '@/lib/auth-context';
+import { useRouter } from 'next/navigation';
+import { User } from '@supabase/supabase-js';
 
 type CodeProps = {
   inline?: boolean;
@@ -170,7 +173,7 @@ const ChatInterface = dynamic(() => Promise.resolve(({
   handleQuickSubmit: (text: string, newMode?: ChatMode) => Promise<void>;
 }) => (
   <>
-    <main className="flex-1 overflow-y-auto p-2 pb-[112px] sm:pb-[80px] sm:p-4 space-y-3 sm:space-y-4 h-[calc(100dvh-104px)] sm:h-[calc(100vh-80px)] mt-[48px] sm:mt-0">
+    <main className="no-scrollbar flex-1 overflow-y-auto p-2 pb-[112px] sm:pb-[80px] sm:p-4 space-y-3 sm:space-y-4 h-[calc(100dvh-104px)] sm:h-[calc(100vh-80px)] mt-[48px] sm:mt-0">
       {messages.length === 0 ? (
         <EmptyState mode={mode} />
       ) : (
@@ -462,6 +465,42 @@ const ChatHistoriesPopover = ({
   </div>
 );
 
+const UserProfile = ({ user, onLogout }: { user: User | null, onLogout: () => void }) => (
+  <div className="p-2 border-t bg-muted/30">
+    <div className="flex items-center gap-2 p-2">
+      <div className="w-8 h-8 rounded-full bg-muted-foreground/10 flex items-center justify-center">
+        {user?.user_metadata?.avatar_url ? (
+          <img
+            src={user.user_metadata.avatar_url}
+            alt="User avatar"
+            className="w-full h-full rounded-full"
+          />
+        ) : (
+          <span className="text-sm font-medium">
+            {user?.email?.[0].toUpperCase() || '?'}
+          </span>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">
+          {user?.user_metadata?.full_name || user?.email || 'Anonymous'}
+        </p>
+        <p className="text-xs text-muted-foreground truncate">
+          {user?.email}
+        </p>
+      </div>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+        onClick={onLogout}
+      >
+        <LogOut className="h-4 w-4" />
+      </Button>
+    </div>
+  </div>
+);
+
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -477,6 +516,24 @@ export default function Home() {
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
   const [isNewCollectionDialogOpen, setIsNewCollectionDialogOpen] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState('');
+  const { user } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log('user', user);
+    };
+
+    fetchUser();
+  }, []);
+
+  useEffect(() => {
+    // If no user is authenticated, redirect to auth page
+    if (!user) {
+      router.replace('/auth');
+    }
+  }, [user, router]);
 
   useHotkeys('meta+k, ctrl+k', (e) => {
     e.preventDefault();
@@ -569,6 +626,8 @@ export default function Home() {
       .select('*')
       .order('created_at', { ascending: false });
 
+    console.log('collections', data);
+
     if (error) {
       console.error('Error loading collections:', error);
       toast.error('Failed to load collections');
@@ -586,7 +645,10 @@ export default function Home() {
 
     const { error } = await supabase
       .from('collections')
-      .insert([{ name: newCollectionName.trim() }])
+      .insert([{
+        name: newCollectionName.trim(),
+        user: user?.id
+      }])
       .select()
       .single();
 
@@ -707,7 +769,7 @@ export default function Home() {
 
         // Wait a brief moment for the database to update
         await new Promise(resolve => setTimeout(resolve, 100));
-        
+
         // Reload the specific chat instead of all chats
         const { data: refreshedChat, error: refreshError } = await supabase
           .from('chat_histories')
@@ -783,6 +845,15 @@ export default function Home() {
     }
 
     await loadChatHistories();
+  };
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error('Error signing out');
+      return;
+    }
+    router.push('/auth');
   };
 
   return (
@@ -896,6 +967,7 @@ export default function Home() {
                 </div>
               )}
             </div>
+            <UserProfile user={user} onLogout={handleLogout} />
           </div>
         ) : (
           <div className="w-10 flex flex-col items-center py-2 gap-2 opacity-100 transition-opacity duration-300 ease-in-out">
@@ -1053,44 +1125,48 @@ export default function Home() {
             </Button>
           </div>
         </div>
-        <div className="overflow-y-auto flex-1 p-2 space-y-2">
-          {chatHistories.length > 0 ? (
-            <div className="opacity-100 transition-opacity duration-300 ease-in-out delay-150">
-              {chatHistories.map((chat) => (
-                <div
-                  key={chat.id}
-                  className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-blue-500/5 transition-colors ${selectedChatId === chat.id ? 'bg-blue-500/10' : ''
-                    }`}
-                  onClick={() => {
-                    loadChat(chat.id);
-                    setIsSidebarOpen(false);
-                  }}
-                >
-                  <div className={`w-1.5 h-1.5 rounded-full ${getModeColor(chat.mode as ChatMode)}`} />
-                  <div className="flex-1 truncate text-base">
-                    {chat.title}
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="opacity-0 group-hover:opacity-100 h-6 w-6 transition-opacity duration-200"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteChat(chat.id);
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-2 space-y-2">
+            {chatHistories.length > 0 ? (
+              <div className="opacity-100 transition-opacity duration-300 ease-in-out delay-150">
+                {chatHistories.map((chat) => (
+                  <div
+                    key={chat.id}
+                    className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-blue-500/5 transition-colors ${selectedChatId === chat.id ? 'bg-blue-500/10' : ''
+                      }`}
+                    onClick={() => {
+                      loadChat(chat.id);
+                      setIsSidebarOpen(false);
                     }}
                   >
-                    <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-sm text-muted-foreground text-center py-4">
-              No chat history yet
-            </div>
-          )}
+                    <div className={`w-1.5 h-1.5 rounded-full ${getModeColor(chat.mode as ChatMode)}`} />
+                    <div className="flex-1 truncate text-base">
+                      {chat.title}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="opacity-0 group-hover:opacity-100 h-6 w-6 transition-opacity duration-200"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteChat(chat.id);
+                      }}
+                    >
+                      <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground text-center py-4">
+                No chat history yet
+              </div>
+            )}
+          </div>
         </div>
-        <div className="h-16" /> {/* Add padding at bottom to account for toolbar */}
+        <div className="mt-auto border-t">
+          <UserProfile user={user} onLogout={handleLogout} />
+        </div>
       </div>
 
       {isSidebarOpen && isMobile && (
@@ -1112,9 +1188,9 @@ export default function Home() {
                 >
                   <div className="flex items-center gap-2">
                     <div className={`w-2 h-2 rounded-full ${mode === 'software' ? 'bg-blue-500' :
-                        mode === 'notetaking' ? 'bg-green-500' :
-                          mode === 'research' ? 'bg-purple-500' :
-                            'bg-gray-400'
+                      mode === 'notetaking' ? 'bg-green-500' :
+                        mode === 'research' ? 'bg-purple-500' :
+                          'bg-gray-400'
                       }`} />
                     <span className="text-base">
                       {mode === 'software' && 'Technical'}

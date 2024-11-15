@@ -18,6 +18,7 @@ export type Database = {
           mode: string
           title: string
           updated_at: string
+          user: string | null
         }
         Insert: {
           collection_id?: string | null
@@ -27,6 +28,7 @@ export type Database = {
           mode: string
           title: string
           updated_at?: string
+          user?: string | null
         }
         Update: {
           collection_id?: string | null
@@ -36,6 +38,7 @@ export type Database = {
           mode?: string
           title?: string
           updated_at?: string
+          user?: string | null
         }
         Relationships: [
           {
@@ -53,18 +56,21 @@ export type Database = {
           id: string
           name: string
           updated_at: string
+          user: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
           updated_at?: string
+          user?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
           updated_at?: string
+          user?: string | null
         }
         Relationships: []
       }
