@@ -12,6 +12,7 @@ export type Database = {
       chat_histories: {
         Row: {
           collection_id: string | null
+          comments: Json | null
           created_at: string
           id: string
           messages: Json
@@ -22,6 +23,7 @@ export type Database = {
         }
         Insert: {
           collection_id?: string | null
+          comments?: Json | null
           created_at?: string
           id?: string
           messages: Json
@@ -32,6 +34,7 @@ export type Database = {
         }
         Update: {
           collection_id?: string | null
+          comments?: Json | null
           created_at?: string
           id?: string
           messages?: Json
