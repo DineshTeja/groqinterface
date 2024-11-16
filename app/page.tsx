@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Send, Trash2, Minimize2, Menu, Command, FileEdit, Origami, FolderPlus, Folder, History, LogOut } from "lucide-react";
+import { Send, Trash2, Minimize2, Command, FileEdit, Origami, FolderPlus, Folder, History, LogOut } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import dynamic from 'next/dynamic';
@@ -39,7 +39,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -62,6 +61,7 @@ type CodeProps = {
 type Message = {
   role: 'user' | 'assistant';
   content: string;
+  comments?: Comment[];
 };
 
 type ChatMode = 'software' | 'notetaking' | 'research' | 'general';
@@ -226,6 +226,12 @@ const ChatInterface = dynamic(() => Promise.resolve(({
   comments,
   handleQuickSubmit,
   setActiveComment,
+  isMobile,
+  isAddingComment,
+  setIsAddingComment,
+  addGeneralComment,
+  activeComment,
+  saveComment,
 }: {
   messages: Message[];
   isLoading: boolean;
@@ -244,6 +250,17 @@ const ChatInterface = dynamic(() => Promise.resolve(({
     selectionEnd: number;
     highlightedText: string;
   } | null) => void;
+  isMobile: boolean;
+  isAddingComment: boolean;
+  setIsAddingComment: (isAdding: boolean) => void;
+  addGeneralComment: (text: string) => Promise<void>;
+  activeComment: {
+    messageIndex: number;
+    selectionStart: number;
+    selectionEnd: number;
+    highlightedText: string;
+  } | null;
+  saveComment: (text: string) => Promise<void>;
 }) => (
   <>
     <main 
@@ -308,123 +325,152 @@ const ChatInterface = dynamic(() => Promise.resolve(({
         <EmptyState mode={mode} />
       ) : (
         <div>
-          {messages.map((message, index) => (
-            <div 
-              key={index} 
-              className="flex flex-col gap-1 mb-1"
-              data-message-index={index}
-            >
-              <span className="text-base text-muted-foreground ml-1">
-                {message.role === 'user' ? 'You' : 'Groq70'}
-              </span>
-              <Card className={`w-full ${message.role === 'assistant' ? 'bg-muted' : ''}`}>
-                <CardContent className="p-2 sm:p-3 text-base break-words">
-                  <div className="prose prose-sm dark:prose-invert max-w-none">
-                    {message.role === 'user' ? (
-                      <HighlightedMessage 
-                        content={message.content} 
-                        comments={comments.filter(c => c.messageIndex === index)}
-                      />
-                    ) : (
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          a: ({ children, ...props }) => (
-                            <a {...props} className="text-blue-500 hover:underline">
-                              {children}
-                            </a>
-                          ),
-                          code: ({ inline, children, ...props }: CodeProps) => {
-                            if (inline) {
+          {messages.map((message, index) => {
+            // Get comments for this message
+            const messageComments = comments.filter(c => c.messageIndex === index);
+            
+            return (
+              <div 
+                key={index} 
+                className="flex flex-col gap-1 mb-1"
+                data-message-index={index}
+              >
+                <span className="text-base text-muted-foreground ml-1">
+                  {message.role === 'user' ? 'You' : 'Groq70'}
+                </span>
+                <Card className={`w-full ${message.role === 'assistant' ? 'bg-muted' : ''}`}>
+                  <CardContent className="p-2 sm:p-3 text-base break-words">
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      {message.role === 'user' ? (
+                        <HighlightedMessage 
+                          content={message.content} 
+                          comments={messageComments}
+                        />
+                      ) : (
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            a: ({ children, ...props }) => (
+                              <a {...props} className="text-blue-500 hover:underline">
+                                {children}
+                              </a>
+                            ),
+                            code: ({ inline, children, ...props }: CodeProps) => {
+                              if (inline) {
+                                return (
+                                  <code className="bg-muted-foreground/20 rounded px-1 py-0.5" {...props}>
+                                    {children}
+                                  </code>
+                                )
+                              }
                               return (
-                                <code className="bg-muted-foreground/20 rounded px-1 py-0.5" {...props}>
+                                <code className="inline-block text-sm" {...props}>
                                   {children}
                                 </code>
                               )
-                            }
-                            return (
-                              <code className="inline-block text-sm" {...props}>
+                            },
+                            pre: ({ children }) => (
+                              <div className="relative w-full my-3">
+                                <pre className="overflow-x-auto p-2 rounded-lg bg-muted-foreground/10 text-sm">
+                                  {children}
+                                </pre>
+                              </div>
+                            ),
+                            p: ({ children }) => {
+                              if (typeof children === 'string') {
+                                return (
+                                  <p className="mb-2">
+                                    <HighlightedMessage 
+                                      content={children} 
+                                      comments={messageComments}
+                                    />
+                                  </p>
+                                );
+                              }
+                              if (React.Children.toArray(children).some(child => 
+                                React.isValidElement(child) && child.type === 'pre'
+                              )) {
+                                return <>{children}</>;
+                              }
+                              return <p className="mb-2">{children}</p>;
+                            },
+                            ul: ({ children, ...props }) => (
+                              <ul {...props} className="list-disc pl-4 my-2">
                                 {children}
-                              </code>
-                            )
-                          },
-                          pre: ({ children }) => (
-                            <div className="relative w-full my-3">
-                              <pre className="overflow-x-auto p-2 rounded-lg bg-muted-foreground/10 text-sm">
+                              </ul>
+                            ),
+                            ol: ({ children, ...props }) => (
+                              <ol {...props} className="list-decimal pl-4 my-2">
                                 {children}
-                              </pre>
-                            </div>
-                          ),
-                          p: ({ children }) => {
-                            if (typeof children === 'string') {
-                              return (
-                                <p className="mb-2">
-                                  <HighlightedMessage 
-                                    content={children} 
-                                    comments={comments.filter(c => c.messageIndex === index)}
-                                  />
-                                </p>
-                              );
-                            }
-                            if (React.Children.toArray(children).some(child => 
-                              React.isValidElement(child) && child.type === 'pre'
-                            )) {
-                              return <>{children}</>;
-                            }
-                            return <p className="mb-2">{children}</p>;
-                          },
-                          ul: ({ children, ...props }) => (
-                            <ul {...props} className="list-disc pl-4 my-2">
-                              {children}
-                            </ul>
-                          ),
-                          ol: ({ children, ...props }) => (
-                            <ol {...props} className="list-decimal pl-4 my-2">
-                              {children}
-                            </ol>
-                          ),
-                          table: ({ children, ...props }) => (
-                            <div className="overflow-x-auto my-4">
-                              <table {...props} className="min-w-full border-collapse border border-border">
+                              </ol>
+                            ),
+                            table: ({ children, ...props }) => (
+                              <div className="overflow-x-auto my-4">
+                                <table {...props} className="min-w-full border-collapse border border-border">
+                                  {children}
+                                </table>
+                              </div>
+                            ),
+                            thead: ({ children, ...props }) => (
+                              <thead {...props} className="bg-muted">
                                 {children}
-                              </table>
-                            </div>
-                          ),
-                          thead: ({ children, ...props }) => (
-                            <thead {...props} className="bg-muted">
-                              {children}
-                            </thead>
-                          ),
-                          tbody: ({ children, ...props }) => (
-                            <tbody {...props} className="divide-y divide-border">
-                              {children}
-                            </tbody>
-                          ),
-                          tr: ({ children, ...props }) => (
-                            <tr {...props} className="even:bg-muted/50">
-                              {children}
-                            </tr>
-                          ),
-                          th: ({ children, ...props }) => (
-                            <th {...props} className="px-4 py-2 text-left font-semibold border-r border-border last:border-r-0">
-                              {children}
-                            </th>
-                          ),
-                          td: ({ children, ...props }) => (
-                            <td {...props} className="px-4 py-2 border-r border-border last:border-r-0">
-                              {children}
-                            </td>
-                          ),
-                        }}
+                              </thead>
+                            ),
+                            tbody: ({ children, ...props }) => (
+                              <tbody {...props} className="divide-y divide-border">
+                                {children}
+                              </tbody>
+                            ),
+                            tr: ({ children, ...props }) => (
+                              <tr {...props} className="even:bg-muted/50">
+                                {children}
+                              </tr>
+                            ),
+                            th: ({ children, ...props }) => (
+                              <th {...props} className="px-4 py-2 text-left font-semibold border-r border-border last:border-r-0">
+                                {children}
+                              </th>
+                            ),
+                            td: ({ children, ...props }) => (
+                              <td {...props} className="px-4 py-2 border-r border-border last:border-r-0">
+                                {children}
+                              </td>
+                            ),
+                          }}
+                        >
+                          {message.content}
+                        </ReactMarkdown>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Add inline comments for mobile view */}
+                {messageComments.length > 0 && (
+                  <div className="sm:hidden space-y-2 mt-1 mb-3">
+                    {messageComments.map((comment) => (
+                      <div 
+                        key={comment.id}
+                        className="ml-4 pl-3 border-l-2 border-blue-500/20"
                       >
-                        {message.content}
-                      </ReactMarkdown>
-                    )}
+                        <div className="bg-blue-500/5 rounded-lg p-2">
+                          {comment.highlightedText && (
+                            <div className="text-sm text-muted-foreground mb-1 italic">
+                              &ldquo;{comment.highlightedText}&rdquo;
+                            </div>
+                          )}
+                          <div className="text-sm">{comment.text}</div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {new Date(comment.createdAt).toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          ))}
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
       
@@ -521,25 +567,123 @@ const ChatInterface = dynamic(() => Promise.resolve(({
         </CommandList>
       </form>
     </CommandDialog>
+
+    <Button
+      variant="outline"
+      size="icon"
+      className="sm:hidden fixed right-4 bottom-[64px] z-50 h-10 w-10 rounded-full shadow-lg bg-background border-blue-500/20 hover:bg-blue-500/10 hover:text-blue-500"
+      onClick={() => setIsAddingComment(true)}
+    >
+      <FileEdit className="h-4 w-4" />
+    </Button>
+
+    <Dialog open={isAddingComment && isMobile} onOpenChange={setIsAddingComment}>
+      <DialogContent className="w-[90%] max-w-[350px] p-4 gap-2 rounded-xl">
+        <DialogHeader className="pb-2">
+          <DialogTitle className="text-lg">
+            {activeComment ? 'Add Comment to Selection' : 'New Comment'}
+          </DialogTitle>
+        </DialogHeader>
+        <form
+          className="space-y-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const formData = new FormData(e.currentTarget);
+            const text = formData.get('comment') as string;
+            
+            if (activeComment) {
+              saveComment(text);
+            } else {
+              addGeneralComment(text);
+            }
+            
+            e.currentTarget.reset();
+          }}
+        >
+          {activeComment?.highlightedText && (
+            <div className="text-sm bg-muted/50 p-2 rounded-md border">
+              <span className="text-muted-foreground">Selected text:</span>
+              <p className="mt-1 font-medium line-clamp-3">
+                &ldquo;{activeComment.highlightedText}&rdquo;
+              </p>
+            </div>
+          )}
+          <div className="flex flex-col gap-2">
+            <Input
+              name="comment"
+              placeholder="Type your comment..."
+              autoFocus
+              className="flex-1"
+            />
+            <div className="flex justify-end gap-2">
+              <Button 
+                type="button" 
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsAddingComment(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" size="sm">
+                Save
+              </Button>
+            </div>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   </>
 )), { ssr: false });
 
 const MobileTopBar = ({
   selectedCollectionId,
   setSelectedCollectionId,
-  collections
+  collections,
+  chatHistories,
+  selectedChatId,
+  loadChat,
+  deleteChat,
 }: {
   selectedCollectionId: string | null;
   setSelectedCollectionId: (id: string | null) => void;
   collections: Database['public']['Tables']['collections']['Row'][];
+  chatHistories: Database['public']['Tables']['chat_histories']['Row'][];
+  selectedChatId: string | null;
+  loadChat: (id: string) => void;
+  deleteChat: (id: string) => void;
 }) => (
   <div className="fixed top-0 inset-x-0 z-50 sm:hidden bg-background/95 backdrop-blur-md px-4 border-b h-[48px] flex items-center">
-    <div className="max-w-4xl mx-auto w-full">
+    <div className="max-w-4xl mx-auto w-full flex items-center gap-2">
       <CollectionSelect
         selectedCollectionId={selectedCollectionId}
         setSelectedCollectionId={setSelectedCollectionId}
         collections={collections}
       />
+      
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 flex-shrink-0"
+          >
+            <History className="h-4 w-4" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent
+          align="end"
+          alignOffset={-8}
+          className="w-80 p-0"
+          sideOffset={16}
+        >
+          <ChatHistoriesPopover
+            chatHistories={chatHistories}
+            selectedChatId={selectedChatId}
+            loadChat={loadChat}
+            deleteChat={deleteChat}
+          />
+        </PopoverContent>
+      </Popover>
     </div>
   </div>
 );
@@ -561,27 +705,16 @@ const getModeColor = (mode: ChatMode) => {
 // Add this new component near the other components at the top level
 const ChatHistoriesPopover = ({
   chatHistories,
-  collections,
-  selectedCollectionId,
-  setSelectedCollectionId,
   selectedChatId,
   loadChat,
   deleteChat,
 }: {
   chatHistories: Database['public']['Tables']['chat_histories']['Row'][];
-  collections: Database['public']['Tables']['collections']['Row'][];
-  selectedCollectionId: string | null;
-  setSelectedCollectionId: (id: string | null) => void;
   selectedChatId: string | null;
   loadChat: (id: string) => void;
   deleteChat: (id: string) => void;
 }) => (
   <div className="w-80 flex flex-col gap-2 p-2">
-    <CollectionSelect
-      selectedCollectionId={selectedCollectionId}
-      setSelectedCollectionId={setSelectedCollectionId}
-      collections={collections}
-    />
     <div className="max-h-[400px] overflow-y-auto space-y-1">
       {chatHistories.map((chat) => (
         <div
@@ -1190,6 +1323,10 @@ export default function Home() {
         selectedCollectionId={selectedCollectionId}
         setSelectedCollectionId={setSelectedCollectionId}
         collections={collections}
+        chatHistories={chatHistories}
+        selectedChatId={selectedChatId}
+        loadChat={loadChat}
+        deleteChat={deleteChat}
       />
       
       {/* Left Sidebar */}
@@ -1221,22 +1358,23 @@ export default function Home() {
                       <FolderPlus className="h-3 w-3" />
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Create New Collection</DialogTitle>
+                  <DialogContent className="w-[90%] max-w-[350px] p-4 gap-2 rounded-xl">
+                    <DialogHeader className="pb-2">
+                      <DialogTitle className="text-lg">New Collection</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4 py-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="name">Collection Name</Label>
-                        <Input
-                          id="name"
-                          value={newCollectionName}
-                          onChange={(e) => setNewCollectionName(e.target.value)}
-                          placeholder="Enter collection name..."
-                        />
-                      </div>
-                      <Button onClick={createCollection} className="w-full">
-                        Create Collection
+                    <div className="flex gap-2">
+                      <Input
+                        value={newCollectionName}
+                        onChange={(e) => setNewCollectionName(e.target.value)}
+                        placeholder="Collection name"
+                        className="flex-1"
+                        autoFocus
+                      />
+                      <Button 
+                        onClick={createCollection}
+                        disabled={!newCollectionName.trim()}
+                      >
+                        Create
                       </Button>
                     </div>
                   </DialogContent>
@@ -1350,22 +1488,23 @@ export default function Home() {
                         <FolderPlus className="h-4 w-4 text-muted-foreground" />
                       </Button>
                     </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Create New Collection</DialogTitle>
+                    <DialogContent className="w-[90%] max-w-[350px] p-4 gap-2 rounded-xl">
+                      <DialogHeader className="pb-2">
+                        <DialogTitle className="text-lg">New Collection</DialogTitle>
                       </DialogHeader>
-                      <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="name">Collection Name</Label>
-                          <Input
-                            id="name"
-                            value={newCollectionName}
-                            onChange={(e) => setNewCollectionName(e.target.value)}
-                            placeholder="Enter collection name..."
-                          />
-                        </div>
-                        <Button onClick={createCollection} className="w-full">
-                          Create Collection
+                      <div className="flex gap-2">
+                        <Input
+                          value={newCollectionName}
+                          onChange={(e) => setNewCollectionName(e.target.value)}
+                          placeholder="Collection name"
+                          className="flex-1"
+                          autoFocus
+                        />
+                        <Button 
+                          onClick={createCollection}
+                          disabled={!newCollectionName.trim()}
+                        >
+                          Create
                         </Button>
                       </div>
                     </DialogContent>
@@ -1399,9 +1538,6 @@ export default function Home() {
                       <div className="relative">
                         <ChatHistoriesPopover
                           chatHistories={chatHistories}
-                          collections={collections}
-                          selectedCollectionId={selectedCollectionId}
-                          setSelectedCollectionId={setSelectedCollectionId}
                           selectedChatId={selectedChatId}
                           loadChat={loadChat}
                           deleteChat={deleteChat}
@@ -1436,7 +1572,12 @@ export default function Home() {
             comments={comments}
             handleQuickSubmit={handleQuickSubmit}
             setActiveComment={setActiveComment}
-            // onTextSelection={handleTextSelection}
+            isMobile={isMobile}
+            isAddingComment={isAddingComment}
+            setIsAddingComment={setIsAddingComment}
+            addGeneralComment={addGeneralComment}
+            activeComment={activeComment}
+            saveComment={saveComment}
           />
         </div>
 
@@ -1552,14 +1693,14 @@ export default function Home() {
       <div className="fixed bottom-0.5 inset-x-0 z-40 sm:hidden bg-background/95 backdrop-blur-md px-4 border-none h-[48px] flex items-center">
         <div className="max-w-4xl mx-auto w-full">
           <div className="bg-background border rounded-lg flex items-center justify-between gap-2 shadow-lg p-1 mb-1">
-            <Button
+            {/* <Button
               variant="outline"
               size="icon"
               className="h-8 w-8"
               onClick={() => setIsSidebarOpen(true)}
             >
               <Menu className="h-4 w-4" />
-            </Button>
+            </Button> */}
 
             <Button
               variant="outline"
