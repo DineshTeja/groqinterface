@@ -190,7 +190,7 @@ const HighlightedMessage = ({ content, comments }: { content: string, comments: 
     }
 
     elements.push(
-      <span 
+      <span
         key={`highlight-${index}`}
         className="bg-yellow-500/20 rounded px-0.5 cursor-pointer hover:bg-yellow-500/30 transition-colors"
         title={comment.text}
@@ -263,7 +263,7 @@ const ChatInterface = dynamic(() => Promise.resolve(({
   saveComment: (text: string) => Promise<void>;
 }) => (
   <>
-    <main 
+    <main
       className="no-scrollbar flex-1 overflow-y-auto p-2 pb-[112px] sm:pb-[80px] sm:p-4 space-y-3 sm:space-y-4 h-[calc(100dvh-104px)] sm:h-[calc(100vh-80px)] mt-[48px] sm:mt-0"
       onMouseUp={() => {
         const selection = window.getSelection();
@@ -274,17 +274,17 @@ const ChatInterface = dynamic(() => Promise.resolve(({
 
         const range = selection.getRangeAt(0);
         const container = range.commonAncestorContainer;
-        
+
         // Find the message element and its index
         const messageEl = container.parentElement?.closest('[data-message-index]');
         if (!messageEl) {
           setActiveComment(null);
           return;
         }
-        
+
         const messageIndex = parseInt(messageEl.getAttribute('data-message-index') || '0');
         const selectedText = selection.toString();
-        
+
         // Get all text nodes in the message
         const walker = document.createTreeWalker(
           messageEl,
@@ -310,9 +310,9 @@ const ChatInterface = dynamic(() => Promise.resolve(({
           setActiveComment(null);
           return;
         }
-        
+
         const endPos = startPos + selectedText.length;
-        
+
         setActiveComment({
           messageIndex,
           selectionStart: startPos,
@@ -328,10 +328,10 @@ const ChatInterface = dynamic(() => Promise.resolve(({
           {messages.map((message, index) => {
             // Get comments for this message
             const messageComments = comments.filter(c => c.messageIndex === index);
-            
+
             return (
-              <div 
-                key={index} 
+              <div
+                key={index}
                 className="flex flex-col gap-1 mb-1"
                 data-message-index={index}
               >
@@ -342,8 +342,8 @@ const ChatInterface = dynamic(() => Promise.resolve(({
                   <CardContent className="p-2 sm:p-3 text-base break-words">
                     <div className="prose prose-sm dark:prose-invert max-w-none">
                       {message.role === 'user' ? (
-                        <HighlightedMessage 
-                          content={message.content} 
+                        <HighlightedMessage
+                          content={message.content}
                           comments={messageComments}
                         />
                       ) : (
@@ -380,14 +380,14 @@ const ChatInterface = dynamic(() => Promise.resolve(({
                               if (typeof children === 'string') {
                                 return (
                                   <p className="mb-2">
-                                    <HighlightedMessage 
-                                      content={children} 
+                                    <HighlightedMessage
+                                      content={children}
                                       comments={messageComments}
                                     />
                                   </p>
                                 );
                               }
-                              if (React.Children.toArray(children).some(child => 
+                              if (React.Children.toArray(children).some(child =>
                                 React.isValidElement(child) && child.type === 'pre'
                               )) {
                                 return <>{children}</>;
@@ -449,7 +449,7 @@ const ChatInterface = dynamic(() => Promise.resolve(({
                 {messageComments.length > 0 && (
                   <div className="sm:hidden space-y-2 mt-1 mb-3">
                     {messageComments.map((comment) => (
-                      <div 
+                      <div
                         key={comment.id}
                         className="ml-4 pl-3 border-l-2 border-blue-500/20"
                       >
@@ -473,7 +473,7 @@ const ChatInterface = dynamic(() => Promise.resolve(({
           })}
         </div>
       )}
-      
+
       {isLoading && (
         <div className="flex flex-col gap-1">
           <span className="text-xs text-muted-foreground ml-1">Groq70</span>
@@ -487,8 +487,8 @@ const ChatInterface = dynamic(() => Promise.resolve(({
       <div ref={messagesEndRef} />
     </main>
 
-    <div className="sm:sticky sm:top-0 fixed bottom-[48px] sm:bottom-4 left-0 right-0 z-10 bg-background/95 backdrop-blur-md sm:border-t px-4 sm:px-2 sm:mt-1">
-      <div className="max-w-4xl mx-auto">
+    <div className="sm:sticky sm:top-0 fixed bottom-[48px] sm:bottom-4 left-0 right-0 z-10 bg-background/95 backdrop-blur-md sm:border-t">
+      <div className="px-2 sm:px-4 max-w-3xl mx-auto">
         <div className="py-2 sm:py-4 flex flex-col gap-2">
           <form onSubmit={handleSubmit} className="relative flex items-center gap-2 bg-input rounded-md focus-within:ring-1 focus-within:ring-ring">
             <Input
@@ -590,13 +590,13 @@ const ChatInterface = dynamic(() => Promise.resolve(({
             e.preventDefault();
             const formData = new FormData(e.currentTarget);
             const text = formData.get('comment') as string;
-            
+
             if (activeComment) {
               saveComment(text);
             } else {
               addGeneralComment(text);
             }
-            
+
             e.currentTarget.reset();
           }}
         >
@@ -616,8 +616,8 @@ const ChatInterface = dynamic(() => Promise.resolve(({
               className="flex-1"
             />
             <div className="flex justify-end gap-2">
-              <Button 
-                type="button" 
+              <Button
+                type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsAddingComment(false)}
@@ -659,7 +659,7 @@ const MobileTopBar = ({
         setSelectedCollectionId={setSelectedCollectionId}
         collections={collections}
       />
-      
+
       <Popover>
         <PopoverTrigger asChild>
           <Button
@@ -810,6 +810,7 @@ export default function Home() {
     selectionEnd: number;
     highlightedText: string;
   } | null>(null);
+  const [isCommentsSidebarOpen, setIsCommentsSidebarOpen] = useState(true);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -965,9 +966,15 @@ export default function Home() {
   useEffect(() => {
     const checkMobile = () => {
       const isMobileView = window.innerWidth < 640; // 640px is the 'sm' breakpoint
+      const isNarrowScreen = window.innerWidth < 1280; // Add a breakpoint for narrow screens
       setIsMobile(isMobileView);
+
       if (isMobileView) {
         setIsSidebarOpen(false);
+        setIsCommentsSidebarOpen(false);
+      } else if (isNarrowScreen) {
+        // On narrow screens, collapse at least one sidebar
+        setIsCommentsSidebarOpen(false);
       }
     };
 
@@ -984,6 +991,7 @@ export default function Home() {
   useEffect(() => {
     if (isMobile) {
       setIsSidebarOpen(false);
+      setIsCommentsSidebarOpen(false);
     }
   }, [isMobile]);
 
@@ -1159,14 +1167,14 @@ export default function Home() {
 
   //   const range = selection.getRangeAt(0);
   //   const container = range.commonAncestorContainer;
-    
+
   //   // Find the message element and its index
   //   const messageEl = container.parentElement?.closest('[data-message-index]');
   //   if (!messageEl) {
   //     setActiveComment(null);
   //     return;
   //   }
-    
+
   //   const messageIndex = parseInt(messageEl.getAttribute('data-message-index') || '0');
   //   const message = messages[messageIndex];
   //   if (!message) {
@@ -1175,7 +1183,7 @@ export default function Home() {
   //   }
 
   //   const selectedText = selection.toString();
-    
+
   //   // Get all text nodes in the message
   //   const walker = document.createTreeWalker(
   //     messageEl,
@@ -1201,15 +1209,15 @@ export default function Home() {
   //     setActiveComment(null);
   //     return;
   //   }
-    
+
   //   const endPos = startPos + selectedText.length;
-    
+
   //   // Verify the selection matches
   //   if (message.content.slice(startPos, endPos) !== selectedText) {
   //     setActiveComment(null);
   //     return;
   //   }
-    
+
   //   setActiveComment({
   //     messageIndex,
   //     selectionStart: startPos,
@@ -1224,7 +1232,7 @@ export default function Home() {
       setActiveComment(null);
       return;
     }
-    
+
     const newComment: Comment = {
       id: crypto.randomUUID(),
       text: text.trim(),
@@ -1234,7 +1242,7 @@ export default function Home() {
       selectionEnd: activeComment.selectionEnd,
       createdAt: new Date().toISOString()
     };
-    
+
     // Add comment to local state
     setComments(prev => [...prev, newComment]);
     setActiveComment(null);
@@ -1264,13 +1272,13 @@ export default function Home() {
       setIsAddingComment(false);
       return;
     }
-    
+
     const newComment: Comment = {
       id: crypto.randomUUID(),
       text: text.trim(),
       createdAt: new Date().toISOString()
     };
-    
+
     // Add comment to local state
     setComments(prev => [...prev, newComment]);
     setIsAddingComment(false);
@@ -1328,7 +1336,7 @@ export default function Home() {
         loadChat={loadChat}
         deleteChat={deleteChat}
       />
-      
+
       {/* Left Sidebar */}
       <div className={`hidden sm:block ${isSidebarOpen ? 'sm:w-64' : 'sm:w-10'} border-r bg-muted/50 transition-all duration-300 ease-in-out overflow-hidden sticky top-0 h-screen`}>
         {isSidebarOpen ? (
@@ -1370,7 +1378,7 @@ export default function Home() {
                         className="flex-1"
                         autoFocus
                       />
-                      <Button 
+                      <Button
                         onClick={createCollection}
                         disabled={!newCollectionName.trim()}
                       >
@@ -1500,7 +1508,7 @@ export default function Home() {
                           className="flex-1"
                           autoFocus
                         />
-                        <Button 
+                        <Button
                           onClick={createCollection}
                           disabled={!newCollectionName.trim()}
                         >
@@ -1558,7 +1566,7 @@ export default function Home() {
       {/* Center container for messages */}
       <div className="flex-1 flex justify-center overflow-hidden relative">
         {/* Messages container with fixed width */}
-        <div className="w-full max-w-4xl flex-shrink-0 relative">
+        <div className={`w-full ${isCommentsSidebarOpen ? 'sm:max-w-[calc(100%-21rem)]' : 'max-w-4xl'} flex-shrink-0 relative transition-all duration-300 mx-auto`}>
           <ChatInterface
             messages={messages}
             isLoading={isLoading}
@@ -1581,105 +1589,139 @@ export default function Home() {
           />
         </div>
 
-        {/* Comments sidebar - positioned absolutely on the right */}
-        <div className="hidden sm:block w-80 border-l bg-muted/5 absolute right-0 top-0 bottom-0 overflow-y-auto">
-          <div className="p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-sm text-muted-foreground">Comments</h3>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-8"
-                onClick={() => setIsAddingComment(true)}
-              >
-                Add Comment
-              </Button>
-            </div>
-            
-            <div className="space-y-4">
-              {(isAddingComment || activeComment) && (
-                <Card className="p-3">
-                  <form
-                    className="space-y-2"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      const formData = new FormData(e.currentTarget);
-                      const text = formData.get('comment') as string;
-                      
-                      if (activeComment) {
-                        saveComment(text);
-                      } else {
-                        addGeneralComment(text);
-                      }
-                      
-                      e.currentTarget.reset();
-                    }}
-                  >
-                    {activeComment?.highlightedText && (
-                      <div className="font-medium text-muted-foreground mb-2">
-                        &ldquo;{activeComment.highlightedText}&rdquo;
-                      </div>
-                    )}
-                    <Input
-                      name="comment"
-                      placeholder="Type your comment..."
-                      autoFocus
-                      className="text-sm"
-                    />
-                    <div className="flex justify-end gap-2">
-                      <Button 
-                        type="button" 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => {
+        {/* Comments sidebar - collapsible */}
+        <div className={`hidden sm:block ${isCommentsSidebarOpen ? 'w-80' : 'w-10'} border-l bg-muted/5 transition-all duration-300 ease-in-out`}>
+          {isCommentsSidebarOpen ? (
+            <div className="w-full flex flex-col h-full opacity-100 transition-opacity duration-300 ease-in-out overflow-y-auto">
+              <div className="p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-sm text-muted-foreground">Comments</h3>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8"
+                      onClick={() => setIsAddingComment(true)}
+                    >
+                      Add Comment
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setIsCommentsSidebarOpen(false)}
+                    >
+                      <Minimize2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {(isAddingComment || activeComment) && (
+                    <Card className="p-3">
+                      <form
+                        className="space-y-2"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          const formData = new FormData(e.currentTarget);
+                          const text = formData.get('comment') as string;
+
                           if (activeComment) {
-                            saveComment('');
+                            saveComment(text);
                           } else {
-                            setIsAddingComment(false);
+                            addGeneralComment(text);
                           }
+
+                          e.currentTarget.reset();
                         }}
                       >
-                        Cancel
-                      </Button>
-                      <Button type="submit" size="sm">
-                        Save
-                      </Button>
-                    </div>
-                  </form>
-                </Card>
-              )}
+                        {activeComment?.highlightedText && (
+                          <div className="font-medium text-muted-foreground mb-2">
+                            &ldquo;{activeComment.highlightedText}&rdquo;
+                          </div>
+                        )}
+                        <Input
+                          name="comment"
+                          placeholder="Type your comment..."
+                          autoFocus
+                          className="text-sm"
+                        />
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              if (activeComment) {
+                                saveComment('');
+                              } else {
+                                setIsAddingComment(false);
+                              }
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button type="submit" size="sm">
+                            Save
+                          </Button>
+                        </div>
+                      </form>
+                    </Card>
+                  )}
 
-              {comments.length === 0 && !isAddingComment && !activeComment ? (
-                <p className="text-sm text-muted-foreground">
-                  No comments yet. Add a comment or select text to comment on specific content.
-                </p>
-              ) : (
-                comments.map(comment => (
-                  <Card key={comment.id} className="p-3 text-sm group relative">
-                    <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 hover:bg-destructive/10 hover:text-destructive"
-                        onClick={() => deleteComment(comment.id)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                    {comment.highlightedText && (
-                      <div className="font-medium text-muted-foreground mb-1">
-                        &ldquo;{comment.highlightedText}&rdquo;
-                      </div>
-                    )}
-                    <div className="pr-6">{comment.text}</div>
-                    <div className="text-xs text-muted-foreground mt-2">
-                      {new Date(comment.createdAt).toLocaleString()}
-                    </div>
-                  </Card>
-                ))
-              )}
+                  {comments.length === 0 && !isAddingComment && !activeComment ? (
+                    <p className="text-sm text-muted-foreground">
+                      No comments yet. Add a comment or select text to comment on specific content.
+                    </p>
+                  ) : (
+                    comments.map(comment => (
+                      <Card key={comment.id} className="p-3 text-sm group relative">
+                        <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 hover:bg-destructive/10 hover:text-destructive"
+                            onClick={() => deleteComment(comment.id)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        {comment.highlightedText && (
+                          <div className="font-medium text-muted-foreground mb-1">
+                            &ldquo;{comment.highlightedText}&rdquo;
+                          </div>
+                        )}
+                        <div className="pr-6">{comment.text}</div>
+                        <div className="text-xs text-muted-foreground mt-2">
+                          {new Date(comment.createdAt).toLocaleString()}
+                        </div>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="w-full flex flex-col items-center py-2 gap-2">
+              <TooltipProvider delayDuration={0}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setIsCommentsSidebarOpen(true)}
+                    >
+                      <FileEdit className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left" className="flex items-center">
+                    Show Comments
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          )}
         </div>
       </div>
 
